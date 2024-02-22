@@ -1,0 +1,14 @@
+{
+  "domain": "tech",
+  "name": "Tech Controllers",
+  "integration_type": "hub",
+  "config_flow": true,
+  "documentation": "https://github.com/anarion80/tech-controllers",
+  "issue_tracker": "https://github.com/anarion80/tech-controllers/issues",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": [
+    "@anarion80"
+  ],
+  "version": "1.0.0"
+}
