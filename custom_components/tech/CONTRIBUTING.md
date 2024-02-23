@@ -21,19 +21,19 @@ Before creating bug reports, please check [this issues list](https://github.com/
 
 1. Enable debug logs for "tech" component by adding following to your configuration.yaml file within config folder:
 
-```yaml
-logger:
-  default: infoks
-  logs:
-    homeassistant.components.tech: debug
-```
+    ```yaml
+    logger:
+      default: infoks
+      logs:
+        homeassistant.components.tech: debug
+    ```
 
 2. Restart your Home Assistant.
 
 3. Go to **Developer Tools** from left menu, then **LOGS** tab and press **LOAD FULL HOME ASSISTANT LOG** button.
 
-![HA TECH LOGS](/images/ha-tech-logs.png)
+    ![HA TECH LOGS](/images/ha-tech-logs.png)
 
 4. Search for a place with homeassistant.components.climate or homeassistant.components.tech or just climate, copy it and add to the reported issue.
 
-![HA TECH LOGS EXAMPLE](/images/ha-tech-logs-ex.png)
+    ![HA TECH LOGS EXAMPLE](/images/ha-tech-logs-ex.png)

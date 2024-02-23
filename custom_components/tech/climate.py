@@ -1,6 +1,7 @@
 """Support for Tech HVAC system."""
 import logging
 from typing import Optional
+
 from homeassistant.components.climate import (
     ClimateEntity,
     ClimateEntityFeature,
@@ -8,11 +9,13 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 SUPPORT_HVAC = [HVACMode.HEAT, HVACMode.OFF]
+
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up entry."""
@@ -20,16 +23,10 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     _LOGGER.debug("Setting up entry, module udid: %s", udid)
     api = hass.data[DOMAIN][config_entry.entry_id]
     zones = await api.get_module_zones(udid)
-    thermostats = [
-                TechThermostat(
-                    zones[zone],
-                    api,
-                    udid
-                )
-                for zone in zones
-            ]
+    thermostats = [TechThermostat(zones[zone], api, udid) for zone in zones]
 
     async_add_entities(thermostats, True)
+
 
 class TechThermostat(ClimateEntity):
     """Representation of a Tech climate."""
@@ -50,21 +47,24 @@ class TechThermostat(ClimateEntity):
 
     @property
     def device_info(self):
+        """Returns device information in a dictionary format."""
         return {
-            "identifiers": {(DOMAIN, "tech")},
-            "name": "tech",
-            "manufacturer": "TechControlers",
+            "identifiers": {(DOMAIN, "tech")},  # Unique identifiers for the device
+            "name": "tech",  # Name of the device
+            "manufacturer": "TechControlers",  # Manufacturer of the device
         }
 
+
 def update_properties(self, device):
-    """
-    Update the properties of the HVAC device based on the data from the device.
+    """Update the properties of the HVAC device based on the data from the device.
 
     Args:
+    self (object): instance of the class
     device (dict): The device data containing information about the device's properties.
 
     Returns:
     None
+
     """
     # Update device name
     self._name = device["description"]["name"]
@@ -102,7 +102,7 @@ def update_properties(self, device):
 
     # Update HVAC mode
     mode = device["zone"]["zoneState"]
-    if mode == "zoneOn" or mode == "noAlarm":
+    if mode in ("zoneOn", "noAlarm"):
         self._mode = HVACMode.HEAT
     else:
         self._mode = HVACMode.OFF
@@ -152,7 +152,9 @@ def update_properties(self, device):
 
     async def async_update(self):
         """Call by the Tech device callback to update state."""
-        _LOGGER.debug("Updating Tech zone: %s, udid: %s, id: %s", self._name, self._udid, self._id)
+        _LOGGER.debug(
+            "Updating Tech zone: %s, udid: %s, id: %s", self._name, self._udid, self._id
+        )
         device = await self._api.get_zone(self._udid, self._id)
         self.update_properties(device)
 
