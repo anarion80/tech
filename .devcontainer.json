@@ -1,5 +1,5 @@
 {
-    "name": "anarion80/tech-controllers",
+    "name": "anarion80/tech",
     "image": "mcr.microsoft.com/devcontainers/python:3.12-bookworm",
     "postCreateCommand": "scripts/setup",
     "forwardPorts": [
@@ -15,6 +15,8 @@
         "vscode": {
             "extensions": [
                 "ms-python.python",
+                "charliermarsh.ruff",
+                "esbenp.prettier-vscode",
                 "github.vscode-pull-request-github",
                 "ryanluker.vscode-coverage-gutters",
                 "ms-python.vscode-pylance",
