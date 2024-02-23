@@ -54,58 +54,57 @@ class TechThermostat(ClimateEntity):
             "manufacturer": "TechControlers",  # Manufacturer of the device
         }
 
+    def update_properties(self, device):
+        """Update the properties of the HVAC device based on the data from the device.
 
-def update_properties(self, device):
-    """Update the properties of the HVAC device based on the data from the device.
+        Args:
+        self (object): instance of the class
+        device (dict): The device data containing information about the device's properties.
 
-    Args:
-    self (object): instance of the class
-    device (dict): The device data containing information about the device's properties.
+        Returns:
+        None
 
-    Returns:
-    None
+        """
+        # Update device name
+        self._name = device["description"]["name"]
 
-    """
-    # Update device name
-    self._name = device["description"]["name"]
+        # Update target temperature
+        if device["zone"]["setTemperature"] is not None:
+            self._target_temperature = device["zone"]["setTemperature"] / 10
+        else:
+            self._target_temperature = None
 
-    # Update target temperature
-    if device["zone"]["setTemperature"] is not None:
-        self._target_temperature = device["zone"]["setTemperature"] / 10
-    else:
-        self._target_temperature = None
+        # Update current temperature
+        if device["zone"]["currentTemperature"] is not None:
+            self._temperature = device["zone"]["currentTemperature"] / 10
+        else:
+            self._temperature = None
 
-    # Update current temperature
-    if device["zone"]["currentTemperature"] is not None:
-        self._temperature = device["zone"]["currentTemperature"] / 10
-    else:
-        self._temperature = None
+        # Update humidity
+        if device["zone"]["humidity"] is not None:
+            self._humidity = device["zone"]["humidity"]
+        else:
+            self._humidity = None
 
-    # Update humidity
-    if device["zone"]["humidity"] is not None:
-        self._humidity = device["zone"]["humidity"]
-    else:
-        self._humidity = None
+        # Update HVAC state
+        state = device["zone"]["flags"]["relayState"]
+        hvac_mode = device["zone"]["flags"]["algorithm"]
+        if state == "on":
+            if hvac_mode == "heating":
+                self._state = HVACAction.HEATING
+            elif hvac_mode == "cooling":
+                self._state = HVACAction.COOLING
+        elif state == "off":
+            self._state = HVACAction.IDLE
+        else:
+            self._state = HVACAction.OFF
 
-    # Update HVAC state
-    state = device["zone"]["flags"]["relayState"]
-    hvac_mode = device["zone"]["flags"]["algorithm"]
-    if state == "on":
-        if hvac_mode == "heating":
-            self._state = HVACAction.HEATING
-        elif hvac_mode == "cooling":
-            self._state = HVACAction.COOLING
-    elif state == "off":
-        self._state = HVACAction.IDLE
-    else:
-        self._state = HVACAction.OFF
-
-    # Update HVAC mode
-    mode = device["zone"]["zoneState"]
-    if mode in ("zoneOn", "noAlarm"):
-        self._mode = HVACMode.HEAT
-    else:
-        self._mode = HVACMode.OFF
+        # Update HVAC mode
+        mode = device["zone"]["zoneState"]
+        if mode in ("zoneOn", "noAlarm"):
+            self._mode = HVACMode.HEAT
+        else:
+            self._mode = HVACMode.OFF
 
     @property
     def unique_id(self) -> str:
