@@ -19,8 +19,8 @@ SUPPORT_HVAC = [HVACMode.HEAT, HVACMode.OFF]
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up entry."""
-    udid = config_entry.data["module"]["udid"]
-    _LOGGER.debug("Setting up entry, module udid: %s", udid)
+    udid = config_entry.data["controller"]["udid"]
+    _LOGGER.debug("Setting up entry, controller udid: %s", udid)
     api = hass.data[DOMAIN][config_entry.entry_id]
     zones = await api.get_module_zones(udid)
     thermostats = [TechThermostat(zones[zone], api, udid) for zone in zones]

@@ -21,7 +21,7 @@ class Tech:
         user_id=None,
         token=None,
         base_url=TECH_API_URL,
-        update_interval=30,
+        update_interval=130,
     ):
         """Initialize the Tech object.
 
@@ -47,6 +47,7 @@ class Tech:
             self.authenticated = False
         self.last_update = None
         self.update_lock = asyncio.Lock()
+        self.modules = {}
         self.zones = {}
         self.tiles = {}
 
@@ -160,10 +161,7 @@ class Tech:
         TechError: If not authenticated, raise 401 Unauthorized error.
 
         """
-        _LOGGER.debug(
-            "Getting module data...  %(module_udid)s,  %(user_id)s",
-            extra=({"module_udid": module_udid, "user_id": self.user_id}),
-        )
+        _LOGGER.debug("Getting module data...  %s,  %s", module_udid, self.user_id)
         if self.authenticated:
             path = "users/" + self.user_id + "/modules/" + module_udid
             result = await self.get(path)
@@ -242,6 +240,56 @@ class Tech:
                     self.tiles[tile["id"]] = tile
                 self.last_update = now
         return self.tiles
+
+    async def module_data(self, module_udid):
+        """Update Tech module zones and tiles.
+
+        either from cache or it will
+        update all the cached values for Tech module assuming
+        no update has occurred for at least the [update_interval].
+
+        Args:
+        self (Tech): The instance of the Tech API.
+        module_udid (string): The Tech module udid.
+
+        Returns:
+        Dictionary of zones and tiles indexed by zone ID.
+
+        """
+        async with self.update_lock:
+            now = time.time()
+            _LOGGER.debug("Geting tiles for controller: %s", module_udid)
+            self.modules.setdefault(
+                module_udid, {"last_update": None, "zones": {}, "tiles": {}}
+            )
+            # _LOGGER.debug("Geting tiles if now=%s, > last_update=%s + interval=%s", now, self.modules[module_udid]['last_update'], self.update_interval)
+            if (
+                self.modules[module_udid]["last_update"] is None
+                or now > self.modules[module_udid]["last_update"] + self.update_interval
+            ):
+                result = await self.get_module_data(module_udid)
+                zones = result["zones"]["elements"]
+                if len(zones) > 0:
+                    _LOGGER.debug(
+                        "Updating zones cache for controller: %s", module_udid
+                    )
+                    zones = list(
+                        filter(
+                            lambda e: e["zone"]["zoneState"] != "zoneUnregistered",
+                            zones,
+                        )
+                    )
+                    for zone in zones:
+                        self.modules[module_udid]["zones"][zone["zone"]["id"]] = zone
+                tiles = result["tiles"]
+                if len(tiles) > 0:
+                    _LOGGER.debug(
+                        "Updating tiles cache for controller: %s", module_udid
+                    )
+                    for tile in tiles:
+                        self.modules[module_udid]["tiles"][tile["id"]] = tile
+                self.modules[module_udid]["last_update"] = now
+        return self.modules[module_udid]
 
     async def get_zone(self, module_udid, zone_id):
         """Return zone from Tech API cache.

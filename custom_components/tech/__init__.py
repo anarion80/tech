@@ -8,18 +8,19 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import aiohttp_client
 
-from .const import DOMAIN
+from . import assets
+from .const import CONF_LANGUAGE, DEFAULT_LANGUAGE, DOMAIN, SUPPORTED_LANGUAGES
 from .tech import Tech
 
 _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
 # List the platforms that you want to support.
-# For your initial PR, limit it to 1 platform.
-PLATFORMS = ["climate", "sensor"]
+# PLATFORMS = ["climate", "sensor", "binary_sensor"]
+PLATFORMS = ["climate"]
 
 
-async def async_setup(hass: HomeAssistant, config: dict):
+async def async_setup(hass: HomeAssistant, config: dict):  # pylint: disable=unused-argument
     """Set up the Tech Controllers component."""
     return True
 
@@ -29,14 +30,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     _LOGGER.debug("Setting up component's entry.")
     _LOGGER.debug("Entry id: %s", str(entry.entry_id))
     _LOGGER.debug(
-        "Entry -> title: %(title)s, data: %(data)s, id: %(id)s, domain: %(domain)s",
-        extra={
-            "title": entry.title,
-            "data": str(entry.data),
-            "id": entry.entry_id,
-            "domain": entry.domain,
-        },
+        "Entry -> title: %s, data: %s, id: %s, domain: %s",
+        entry.title,
+        str(entry.data),
+        entry.entry_id,
+        entry.domain,
     )
+    language_code = entry.data.get(CONF_LANGUAGE, SUPPORTED_LANGUAGES[DEFAULT_LANGUAGE])
+    assets.loadSubtitles(language_code)
     # Store an API object for your platforms to access
     hass.data.setdefault(DOMAIN, {})
     http_session = aiohttp_client.async_get_clientsession(hass)
@@ -45,6 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     )
 
     for component in PLATFORMS:
+        _LOGGER.debug("Setting up component's entry for Platform: %s", component)
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setup(entry, component)
         )
