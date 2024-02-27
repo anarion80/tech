@@ -16,8 +16,7 @@ _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 
 # List the platforms that you want to support.
-# PLATFORMS = ["climate", "sensor", "binary_sensor"]
-PLATFORMS = ["climate"]
+PLATFORMS = ["climate", "sensor", "binary_sensor"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict):  # pylint: disable=unused-argument
@@ -45,11 +44,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         http_session, entry.data["user_id"], entry.data["token"]
     )
 
-    for component in PLATFORMS:
-        _LOGGER.debug("Setting up component's entry for Platform: %s", component)
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, component)
-        )
+    _LOGGER.debug("Setting up component's entry for Platforms: %s", PLATFORMS)
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    )
 
     return True
 
