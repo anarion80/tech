@@ -21,6 +21,7 @@ def loadSubtitles(language="pl"):
         None
 
     """
+    # TODO: Get subtitles directly from: https://emodul.pl/api/v1/i18n/{lang}
     global _subtitles  # noqa: PLW0603
     _LOGGER.debug("loading emodul.%s.json", language)
     filename = os.path.join(

@@ -9,6 +9,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.config_entries import ConfigEntry
 
 from .const import DOMAIN
 
@@ -21,9 +22,15 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up entry."""
     udid = config_entry.data["controller"]["udid"]
     _LOGGER.debug("Setting up entry, controller udid: %s", udid)
+    model = (
+        config_entry.data["controller"]["name"]
+        + ": "
+        + config_entry.data["controller"]["version"]
+    )
     api = hass.data[DOMAIN][config_entry.entry_id]
     zones = await api.get_module_zones(udid)
-    thermostats = [TechThermostat(zones[zone], api, udid) for zone in zones]
+    _LOGGER.debug("👴 Zones via get_module_zones: %s", zones)
+    thermostats = [TechThermostat(zones[zone], api, udid, model) for zone in zones]
 
     async_add_entities(thermostats, True)
 
@@ -31,15 +38,17 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 class TechThermostat(ClimateEntity):
     """Representation of a Tech climate."""
 
-    def __init__(self, device, api, udid):
+    def __init__(self, device, api, udid, model):
         """Initialize the Tech device."""
         _LOGGER.debug("Init TechThermostat...")
         self._udid = udid
         self._api = api
         self._id = device["zone"]["id"]
         self._unique_id = udid + "_" + str(device["zone"]["id"])
-        self.device_name = "tech"
-        self.manufacturer = "TechControlers"
+        self.device_name = device["description"]["name"]
+        # self.device_name = "Climate controller"
+        self.manufacturer = "TechControllers"
+        self.model = model
         self._temperature = None
         self.update_properties(device)
         # Remove the line below after HA 2025.1
@@ -49,9 +58,11 @@ class TechThermostat(ClimateEntity):
     def device_info(self):
         """Returns device information in a dictionary format."""
         return {
-            "identifiers": {(DOMAIN, "tech")},  # Unique identifiers for the device
-            "name": "tech",  # Name of the device
-            "manufacturer": "TechControlers",  # Manufacturer of the device
+            # "identifiers": {(DOMAIN, "climate")},  # Unique identifiers for the device
+            "identifiers": {(DOMAIN, self._id)},  # Unique identifiers for the device
+            "name": self.device_name,  # Name of the device
+            "model": self.model,  # Model of the device
+            "manufacturer": self.manufacturer,  # Manufacturer of the device
         }
 
     def update_properties(self, device):

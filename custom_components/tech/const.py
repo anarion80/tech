@@ -15,8 +15,10 @@ TYPE_RELAY = 11
 TYPE_ADDITIONAL_PUMP = 21
 TYPE_FAN = 22
 TYPE_VALVE = 23
+TYPE_MIXING_VALVE = 24
 TYPE_FUEL_SUPPLY = 31
 TYPE_TEXT = 40
+TYPE_SW_VERSION = 50
 
 # map iconId -> icon name
 ICON_BY_ID = {
@@ -32,6 +34,7 @@ ICON_BY_TYPE = {
     TYPE_ADDITIONAL_PUMP: "mdi:arrow-right-drop-circle-outline",
     TYPE_FAN: "mdi:fan",
     TYPE_VALVE: "mdi:valve",
+    TYPE_MIXING_VALVE: "mdi:valve",  # TODO: find a better icon
 }
 
 # map type -> txtId
@@ -39,6 +42,7 @@ TXT_ID_BY_TYPE = {
     TYPE_FIRE_SENSOR: 205,
     TYPE_FAN: 4135,
     TYPE_VALVE: 991,
+    TYPE_MIXING_VALVE: 5731,
     TYPE_FUEL_SUPPLY: 961,
 }
 

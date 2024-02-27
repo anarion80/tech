@@ -17,6 +17,7 @@ from .const import (
     DOMAIN,
     TYPE_FAN,
     TYPE_FUEL_SUPPLY,
+    TYPE_MIXING_VALVE,
     TYPE_TEMPERATURE,
     TYPE_TEMPERATURE_CH,
     TYPE_TEXT,
@@ -35,7 +36,13 @@ async def async_setup_entry(
         "Setting up sensor entry, controller udid: %s",
         config_entry.data["controller"]["udid"],
     )
+    udid = config_entry.data["controller"]["udid"]
     api = hass.data[DOMAIN][config_entry.entry_id]
+    model = (
+        config_entry.data["controller"]["name"]
+        + ": "
+        + config_entry.data["controller"]["version"]
+    )
 
     _LOGGER.debug("config_entry.data: %s", config_entry.data)
     controller = config_entry.data["controller"]
@@ -44,9 +51,15 @@ async def async_setup_entry(
     controller_udid = controller["udid"]
     _LOGGER.debug("Controller UDID: %s", controller_udid)
 
+    # data = await api.module_data(controller_udid)
+    # tiles = await api.get_module_tiles(udid)
     data = await api.module_data(controller_udid)
+    zones = data["zones"]
     tiles = data["tiles"]
-    _LOGGER.debug("Controller UDID Tiles: %s", tiles)
+    # _LOGGER.debug("👩‍🦰 Zones via module_data: %s", zones)
+
+    _LOGGER.debug("👩‍🦰 Tiles: %s", tiles)
+    _LOGGER.debug("👩‍🦰 Zones: %s", zones)
 
     entities = []
     for t in tiles:
@@ -65,40 +78,37 @@ async def async_setup_entry(
             # entities.append(TileValveTemperatureSensor(tile, api, controller_udid, VALVE_SENSOR_RETURN_TEMPERATURE))
             # entities.append(TileValveTemperatureSensor(tile, api, controller_udid, VALVE_SENSOR_SET_TEMPERATURE))
             # entities.append(TileValveTemperatureSensor(tile, api, controller_udid, VALVE_SENSOR_CURRENT_TEMPERATURE))
+        if tile["type"] == TYPE_MIXING_VALVE:
+            entities.append(TileMixingValveSensor(tile, api, controller_udid))
         if tile["type"] == TYPE_FUEL_SUPPLY:
             entities.append(TileFuelSupplySensor(tile, api, controller_udid))
         if tile["type"] == TYPE_TEXT:
             entities.append(TileTextSensor(tile, api, controller_udid))
     _LOGGER.debug("Controller Entities: %s", entities)
-    async_add_entities(entities)
+    async_add_entities(entities, True)
 
-    zones = data["zones"]
     async_add_entities(
         [
-            ZoneTemperatureSensor(
-                zones[zone],
-                api,
-                controller_udid,
-            )
+            ZoneTemperatureSensor(zones[zone], api, controller_udid, model)
             for zone in zones
         ],
         True,
     )
 
-    zones = await api.get_module_zones(config_entry.data["controller"]["udid"])
-    tiles = await api.get_module_tiles(config_entry.data["controller"]["udid"])
+    # zones = await api.get_module_zones(config_entry.data["controller"]["udid"])
+    # tiles = await api.get_module_tiles(config_entry.data["controller"]["udid"])
 
-    battery_devices = map_to_battery_sensors(zones, api, config_entry)
-    temperature_sensors = map_to_temperature_sensors(zones, api, config_entry)
-    humidity_sensors = map_to_humidity_sensors(zones, api, config_entry)
-    tile_sensors = map_to_tile_sensors(tiles, api, config_entry)
+    # battery_devices = map_to_battery_sensors(zones, api, config_entry)
+    # temperature_sensors = map_to_temperature_sensors(zones, api, config_entry)
+    # humidity_sensors = map_to_humidity_sensors(zones, api, config_entry)
+    # tile_sensors = map_to_tile_sensors(tiles, api, config_entry)
 
-    async_add_entities(
-        itertools.chain(
-            battery_devices, temperature_sensors, humidity_sensors, tile_sensors
-        ),
-        True,
-    )
+    # async_add_entities(
+    #     itertools.chain(
+    #         battery_devices, temperature_sensors, humidity_sensors, tile_sensors
+    #     ),
+    #     True,
+    # )
 
 
 def map_to_battery_sensors(zones, api, config_entry):
@@ -480,13 +490,15 @@ class TechHumiditySensor(SensorEntity):
 class ZoneSensor(Entity):
     """Representation of a Zone Sensor."""
 
-    def __init__(self, device, api, controller_udid):
+    def __init__(self, device, api, controller_udid, model):
         """Initialize the sensor."""
         _LOGGER.debug("Init ZoneSensor...")
         self._controller_udid = controller_udid
         self._api = api
         self._id = device["zone"]["id"]
-        self._model = assets.get_text(1686)
+        self._device_name = device["description"]["name"]
+        # self._model = assets.get_text(1686)
+        self._model = model
         self.update_properties(device)
 
     def update_properties(self, device):
@@ -525,8 +537,9 @@ class ZoneSensor(Entity):
         # Return device information
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
-            "name": self.name,
-            "manufacturer": "Tech",
+            # "identifiers": {(DOMAIN, "climate")},
+            "name": self._device_name,
+            "manufacturer": "TechControllers",
             "model": self._model,
         }
 
@@ -568,6 +581,7 @@ class ZoneTemperatureSensor(ZoneSensor):
     @property
     def name(self):
         """Return the name of the sensor."""
+        # return f"{self._name}"
         return f"{self._name} Temperature"
 
     @property
@@ -579,9 +593,12 @@ class ZoneTemperatureSensor(ZoneSensor):
 class TileSensor(TileEntity, Entity):
     """Representation of a TileSensor."""
 
-    def __init__(self, device, api, controller_udid):
-        """Initialize the tile sensor."""
-        super().__init__(device, api, controller_udid)
+    # def __init__(self, device, api, controller_udid):
+    #     """Initialize the tile sensor."""
+    #     super().__init__(device, api, controller_udid)
+
+    def get_state(self, device):
+        """Get the state of the device."""
 
 
 class TileTemperatureSensor(TileSensor):
@@ -665,6 +682,24 @@ class TileWidgetSensor(TileSensor):
 
 class TileValveSensor(TileSensor):
     """Representation of a Tile Valve Sensor."""
+
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, device, api, controller_udid):
+        """Initialize the sensor."""
+        TileSensor.__init__(self, device, api, controller_udid)
+        self._attr_icon = assets.get_icon_by_type(device["type"])
+        name = assets.get_text_by_type(device["type"])
+        self._name = f"{name} {device['params']['valveNumber']}"
+
+    def get_state(self, device):
+        """Get the state of the device."""
+        return device["params"]["openingPercentage"]
+
+
+class TileMixingValveSensor(TileSensor):
+    """Representation of a Tile Mixing Valve Sensor."""
 
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT

@@ -15,11 +15,13 @@ class TileEntity(entity.Entity):
 
     def __init__(self, device, api, controller_uid):
         """Initialize the tile entity."""
-        _LOGGER.debug("Init TileEntity...")
+        _LOGGER.debug("⬜ Init TileEntity...")
         self._controller_uid = controller_uid
+        _LOGGER.debug("⬜ self._controller_uid: %s", self._controller_uid)
         self._api = api
-        _LOGGER.debug("TileEntity: %s", device)
+        _LOGGER.debug("⬜ TileEntity: %s", device)
         self._id = device["id"]
+        self._unique_id = controller_uid + "_" + str(device["id"])
         self._model = device["params"].get("description")
         self._state = self.get_state(device)
         txt_id = device["params"].get("txtId")
@@ -33,15 +35,16 @@ class TileEntity(entity.Entity):
         """Get device info."""
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
+            # "identifiers": {(DOMAIN, "tech")},
             "name": self.name,
-            "manufacturer": "Tech",
+            "manufacturer": "TechControllers",
             "model": self._model,
         }
 
     @property
     def unique_id(self) -> str:
         """Return a unique ID."""
-        return self._id
+        return self._unique_id
 
     @property
     def name(self):
@@ -58,7 +61,21 @@ class TileEntity(entity.Entity):
         """Get device state."""
         raise NotImplementedError("Must override get_state")
 
+    def update_properties(self, device):
+        """Update the properties of the device based on the provided device information.
+
+        Args:
+        device: dict, the device information containing description, zone, setTemperature, and currentTemperature
+
+        Returns:
+        None
+
+        """
+        # Update _state property
+        self._state = self.get_state(device)
+
     async def async_update(self):
         """Update the state of the entity."""
-        device = await self._api.get_tile(self._controller_uid, self.unique_id)
-        self._state = self.get_state(device)
+
+        device = await self._api.get_tile(self._controller_uid, self._id)
+        self.update_properties(device)

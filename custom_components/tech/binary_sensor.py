@@ -38,15 +38,18 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         if tile["type"] == TYPE_ADDITIONAL_PUMP:
             entities.append(RelaySensor(tile, api, controller_udid))
 
-    async_add_entities(entities)
+    async_add_entities(entities, True)
 
 
 class TileBinarySensor(TileEntity, binary_sensor.BinarySensorEntity):
     """Representation of a TileBinarySensor."""
 
-    def __init__(self, device, api, controller_udid):
-        """Initialize the tile binary sensor."""
-        super().__init__(device, api, controller_udid)
+    # def __init__(self, device, api, controller_udid):
+    #     """Initialize the tile binary sensor."""
+    #     super().__init__(device, api, controller_udid)
+
+    def get_state(self, device):
+        """Get the state of the device."""
 
     @property
     def state(self):
