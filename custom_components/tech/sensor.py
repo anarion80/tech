@@ -1,5 +1,5 @@
 """Support for Tech HVAC system."""
-import itertools
+# import itertools
 import logging
 
 from homeassistant.components.sensor import (
@@ -36,7 +36,7 @@ async def async_setup_entry(
         "Setting up sensor entry, controller udid: %s",
         config_entry.data["controller"]["udid"],
     )
-    udid = config_entry.data["controller"]["udid"]
+    # udid = config_entry.data["controller"]["udid"]
     api = hass.data[DOMAIN][config_entry.entry_id]
     model = (
         config_entry.data["controller"]["name"]
