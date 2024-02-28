@@ -11,7 +11,7 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import aiohttp_client, config_validation as cv
 
-from .const import CONF_LANGUAGE, DEFAULT_LANGUAGE, DOMAIN, SUPPORTED_LANGUAGES
+from .const import DOMAIN
 from .tech import Tech
 
 _LOGGER = logging.getLogger(__name__)
@@ -20,9 +20,6 @@ DATA_SCHEMA = vol.Schema(
     {
         vol.Required("username"): cv.string,
         vol.Required("password"): cv.string,
-        vol.Required(CONF_LANGUAGE, default=DEFAULT_LANGUAGE): vol.In(
-            SUPPORTED_LANGUAGES.keys()
-        ),
     }
 )
 
@@ -122,14 +119,11 @@ async def validate_input(hass: core.HomeAssistant, data):
         raise InvalidAuth
     modules = await api.list_modules()
 
-    language_code = SUPPORTED_LANGUAGES[data[CONF_LANGUAGE]]
-
     # Return info that you want to store in the config entry.
     return {
         "user_id": api.user_id,
         "token": api.token,
         "controllers": modules,
-        CONF_LANGUAGE: language_code,
     }
 
 

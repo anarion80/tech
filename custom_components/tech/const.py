@@ -2,10 +2,7 @@
 
 DOMAIN = "tech"
 
-CONF_LANGUAGE = "language"
-
 DEFAULT_ICON = "mdi:eye"
-DEFAULT_LANGUAGE = "English"
 
 # tile type
 TYPE_TEMPERATURE = 1
@@ -44,16 +41,6 @@ TXT_ID_BY_TYPE = {
     TYPE_VALVE: 991,
     TYPE_MIXING_VALVE: 5731,
     TYPE_FUEL_SUPPLY: 961,
-}
-
-SUPPORTED_LANGUAGES = {
-    "English": "en",
-    "Polski": "pl",
-    "Deutsch": "de",
-    "Čeština": "cs",
-    "Slovenský": "sk",
-    "Magyar": "hu",
-    "Pусский": "ru",
 }
 
 VALVE_SENSOR_RETURN_TEMPERATURE = {"txt_id": 747, "state_key": "returnTemp"}

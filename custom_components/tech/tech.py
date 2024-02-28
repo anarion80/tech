@@ -72,7 +72,7 @@ class Tech:
                 raise TechError(response.status, await response.text())
 
             data = await response.json()
-            _LOGGER.debug("GET request data: %s", data)
+            # _LOGGER.debug("GET request data: %s", data)
             return data
 
     async def post(self, request_path, post_data):
@@ -165,6 +165,28 @@ class Tech:
         if self.authenticated:
             path = "users/" + self.user_id + "/modules/" + module_udid
             result = await self.get(path)
+        else:
+            raise TechError(401, "Unauthorized")
+        return result
+
+    async def get_translations(self, language):
+        """Retrieve language pack for a given language.
+
+        Args:
+        language (str): Language code.
+
+        Returns:
+        dict: The data of the retrieved language pack with translations.
+
+        Raises:
+        TechError: If not authenticated, raise 401 Unauthorized error.
+
+        """
+        _LOGGER.debug("Getting %s language.", language)
+        if self.authenticated:
+            path = "i18n/" + language
+            result = await self.get(path)
+            # API already takes care of wrong and non-existent languages by returning "en"
         else:
             raise TechError(401, "Unauthorized")
         return result

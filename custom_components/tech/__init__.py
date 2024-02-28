@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import aiohttp_client
 
 from . import assets
-from .const import CONF_LANGUAGE, DEFAULT_LANGUAGE, DOMAIN, SUPPORTED_LANGUAGES
+from .const import DOMAIN
 from .tech import Tech
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,14 +35,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         entry.entry_id,
         entry.domain,
     )
-    language_code = entry.data.get(CONF_LANGUAGE, SUPPORTED_LANGUAGES[DEFAULT_LANGUAGE])
-    assets.loadSubtitles(language_code)
+    language_code = hass.config.language
     # Store an API object for your platforms to access
     hass.data.setdefault(DOMAIN, {})
     http_session = aiohttp_client.async_get_clientsession(hass)
     hass.data[DOMAIN][entry.entry_id] = Tech(
         http_session, entry.data["user_id"], entry.data["token"]
     )
+    api = hass.data[DOMAIN][entry.entry_id]
+
+    await assets.load_subtitles(language_code, api)
 
     _LOGGER.debug("Setting up component's entry for Platforms: %s", PLATFORMS)
     hass.async_create_task(
