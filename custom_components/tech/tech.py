@@ -115,16 +115,19 @@ class Tech:
         """
         path = "authentication"
         post_data = '{"username": "' + username + '", "password": "' + password + '"}'
-        result = await self.post(path, post_data)
-        self.authenticated = result["authenticated"]
-        if self.authenticated:
-            self.user_id = str(result["user_id"])
-            self.token = result["token"]
-            self.headers = {
-                "Accept": "application/json",
-                "Accept-Encoding": "gzip",
-                "Authorization": "Bearer " + self.token,
-            }
+        try:
+            result = await self.post(path, post_data)
+            self.authenticated = result["authenticated"]
+            if self.authenticated:
+                self.user_id = str(result["user_id"])
+                self.token = result["token"]
+                self.headers = {
+                    "Accept": "application/json",
+                    "Accept-Encoding": "gzip",
+                    "Authorization": "Bearer " + self.token,
+                }
+        except TechError as err:
+            raise TechLoginError(401, "Unauthorized") from err
         return result["authenticated"]
 
     async def list_modules(self):
@@ -409,6 +412,27 @@ class Tech:
 
 class TechError(Exception):
     """Raised when Tech APi request ended in error.
+
+    Attributes:
+        status_code - error code returned by Tech API
+        status - more detailed description
+
+    """
+
+    def __init__(self, status_code, status):
+        """Initialize the status code and status of the object.
+
+        Args:
+            status_code (int): The status code to be assigned.
+            status (str): The status to be assigned.
+
+        """
+        self.status_code = status_code
+        self.status = status
+
+
+class TechLoginError(Exception):
+    """Raised when Tech API login fails.
 
     Attributes:
         status_code - error code returned by Tech API
