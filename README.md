@@ -82,6 +82,6 @@ Everything else might or might not work - needs community help, testing and repo
 - M-9 (v1.0.12)
 - M-9r (v1.3.8)
 
-# 📝 Copyright & License
+## 📝 Copyright & License
 
 Copyright (c) 2024 anarion80 - Released under the [MIT](LICENSE).
