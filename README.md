@@ -27,7 +27,7 @@ The integration was developed and tested against eModul demo account (username: 
 Additionally, I own M-9r so that is also tested.
 Everything else might or might not work - needs community help, testing and reporting back what works.
 
-## Features
+## :sparkles: Features
 
 - Configuration through UI
 - Support for multiple controllers which can be individually imported under given single account
@@ -39,7 +39,7 @@ Everything else might or might not work - needs community help, testing and repo
 
 ![Tech Thermostat Cards](/custom_components/tech/images/ha-tech-1.png)
 
-## Plans for development
+## ✏ Plans for development
 
 - Publish the tech.py Python Package to PyPI
 - Write tests for HA component
@@ -47,7 +47,7 @@ Everything else might or might not work - needs community help, testing and repo
 - Support for cold tolerance setting
 - Support for zones schedules
 
-## Installation
+## 🏗 Installation
 
 1. Copy entire repository content into your config/custom_components/tech folder of your Home Assistant installation.
    **Note:** If you don't have in your installation "custom_components" folder you need to create one and "tech" folder in it.
@@ -69,7 +69,7 @@ Everything else might or might not work - needs community help, testing and repo
 
 ![Tech Controllers Setup 4](/custom_components/tech/images/ha-tech-2.png)
 
-## List of reported working TECH Controllers
+## 🚀 List of reported working TECH Controllers
 
 - L4-WiFi (v.1.0.24)
 - L-7 (v.2.0.8)
@@ -81,3 +81,7 @@ Everything else might or might not work - needs community help, testing and repo
 - ST-16s WIFI (v.1.0.5)
 - M-9 (v1.0.12)
 - M-9r (v1.3.8)
+
+# 📝 Copyright & License
+
+Copyright (c) 2024 anarion80 - Released under the [MIT](LICENSE).
