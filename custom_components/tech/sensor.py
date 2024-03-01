@@ -36,7 +36,6 @@ async def async_setup_entry(
         "Setting up sensor entry, controller udid: %s",
         config_entry.data["controller"]["udid"],
     )
-    # udid = config_entry.data["controller"]["udid"]
     api = hass.data[DOMAIN][config_entry.entry_id]
     model = (
         config_entry.data["controller"]["name"]
@@ -44,22 +43,12 @@ async def async_setup_entry(
         + config_entry.data["controller"]["version"]
     )
 
-    _LOGGER.debug("config_entry.data: %s", config_entry.data)
     controller = config_entry.data["controller"]
-    # _LOGGER.debug("Number of controllers: %s", len(controllers))
-    # for controller in controllers:
     controller_udid = controller["udid"]
-    _LOGGER.debug("Controller UDID: %s", controller_udid)
 
-    # data = await api.module_data(controller_udid)
-    # tiles = await api.get_module_tiles(udid)
     data = await api.module_data(controller_udid)
     zones = data["zones"]
     tiles = data["tiles"]
-    # _LOGGER.debug("👩‍🦰 Zones via module_data: %s", zones)
-
-    _LOGGER.debug("👩‍🦰 Tiles: %s", tiles)
-    _LOGGER.debug("👩‍🦰 Zones: %s", zones)
 
     entities = []
     for t in tiles:
@@ -84,7 +73,7 @@ async def async_setup_entry(
             entities.append(TileFuelSupplySensor(tile, api, controller_udid))
         if tile["type"] == TYPE_TEXT:
             entities.append(TileTextSensor(tile, api, controller_udid))
-    _LOGGER.debug("Controller Entities: %s", entities)
+
     async_add_entities(entities, True)
 
     async_add_entities(
@@ -94,21 +83,6 @@ async def async_setup_entry(
         ],
         True,
     )
-
-    # zones = await api.get_module_zones(config_entry.data["controller"]["udid"])
-    # tiles = await api.get_module_tiles(config_entry.data["controller"]["udid"])
-
-    # battery_devices = map_to_battery_sensors(zones, api, config_entry)
-    # temperature_sensors = map_to_temperature_sensors(zones, api, config_entry)
-    # humidity_sensors = map_to_humidity_sensors(zones, api, config_entry)
-    # tile_sensors = map_to_tile_sensors(tiles, api, config_entry)
-
-    # async_add_entities(
-    #     itertools.chain(
-    #         battery_devices, temperature_sensors, humidity_sensors, tile_sensors
-    #     ),
-    #     True,
-    # )
 
 
 def map_to_battery_sensors(zones, api, config_entry):
@@ -497,7 +471,6 @@ class ZoneSensor(Entity):
         self._api = api
         self._id = device["zone"]["id"]
         self._device_name = device["description"]["name"]
-        # self._model = assets.get_text(1686)
         self._model = model
         self.update_properties(device)
 
@@ -537,7 +510,6 @@ class ZoneSensor(Entity):
         # Return device information
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
-            # "identifiers": {(DOMAIN, "climate")},
             "name": self._device_name,
             "manufacturer": "TechControllers",
             "model": self._model,
@@ -581,7 +553,6 @@ class ZoneTemperatureSensor(ZoneSensor):
     @property
     def name(self):
         """Return the name of the sensor."""
-        # return f"{self._name}"
         return f"{self._name} Temperature"
 
     @property
@@ -592,10 +563,6 @@ class ZoneTemperatureSensor(ZoneSensor):
 
 class TileSensor(TileEntity, Entity):
     """Representation of a TileSensor."""
-
-    # def __init__(self, device, api, controller_udid):
-    #     """Initialize the tile sensor."""
-    #     super().__init__(device, api, controller_udid)
 
     def get_state(self, device):
         """Get the state of the device."""

@@ -20,7 +20,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     entities = []
     # for controller in controllers:
     controller_udid = controller["udid"]
-    _LOGGER.debug("Controller UDID: %s", controller_udid)
     data = await api.module_data(controller_udid)
     tiles = data["tiles"]
     for t in tiles:
@@ -43,10 +42,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class TileBinarySensor(TileEntity, binary_sensor.BinarySensorEntity):
     """Representation of a TileBinarySensor."""
-
-    # def __init__(self, device, api, controller_udid):
-    #     """Initialize the tile binary sensor."""
-    #     super().__init__(device, api, controller_udid)
 
     def get_state(self, device):
         """Get the state of the device."""

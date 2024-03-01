@@ -29,7 +29,6 @@ def get_text(text_id) -> str:
     if text_id != 0:
         return TRANSLATIONS["data"].get(str(text_id), f"txtId {text_id}")
     else:
-        _LOGGER.debug("load_subtitles - unknown text id: %s", str(text_id))
         return f"txtId {text_id}"
 
 

@@ -15,11 +15,8 @@ class TileEntity(entity.Entity):
 
     def __init__(self, device, api, controller_uid):
         """Initialize the tile entity."""
-        _LOGGER.debug("⬜ Init TileEntity...")
         self._controller_uid = controller_uid
-        _LOGGER.debug("⬜ self._controller_uid: %s", self._controller_uid)
         self._api = api
-        _LOGGER.debug("⬜ TileEntity: %s", device)
         self._id = device["id"]
         self._unique_id = controller_uid + "_" + str(device["id"])
         self._model = device["params"].get("description")
@@ -35,7 +32,6 @@ class TileEntity(entity.Entity):
         """Get device info."""
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
-            # "identifiers": {(DOMAIN, "tech")},
             "name": self.name,
             "manufacturer": "TechControllers",
             "model": self._model,

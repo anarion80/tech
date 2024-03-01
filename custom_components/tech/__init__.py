@@ -46,7 +46,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     await assets.load_subtitles(language_code, api)
 
-    _LOGGER.debug("Setting up component's entry for Platforms: %s", PLATFORMS)
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     )

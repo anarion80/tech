@@ -28,7 +28,6 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     )
     api = hass.data[DOMAIN][config_entry.entry_id]
     zones = await api.get_module_zones(udid)
-    _LOGGER.debug("👴 Zones via get_module_zones: %s", zones)
     thermostats = [TechThermostat(zones[zone], api, udid, model) for zone in zones]
 
     async_add_entities(thermostats, True)
@@ -45,7 +44,6 @@ class TechThermostat(ClimateEntity):
         self._id = device["zone"]["id"]
         self._unique_id = udid + "_" + str(device["zone"]["id"])
         self.device_name = device["description"]["name"]
-        # self.device_name = "Climate controller"
         self.manufacturer = "TechControllers"
         self.model = model
         self._temperature = None
@@ -57,7 +55,6 @@ class TechThermostat(ClimateEntity):
     def device_info(self):
         """Returns device information in a dictionary format."""
         return {
-            # "identifiers": {(DOMAIN, "climate")},  # Unique identifiers for the device
             "identifiers": {(DOMAIN, self._id)},  # Unique identifiers for the device
             "name": self.device_name,  # Name of the device
             "model": self.model,  # Model of the device

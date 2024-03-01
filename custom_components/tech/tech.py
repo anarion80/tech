@@ -72,7 +72,6 @@ class Tech:
                 raise TechError(response.status, await response.text())
 
             data = await response.json()
-            # _LOGGER.debug("GET request data: %s", data)
             return data
 
     async def post(self, request_path, post_data):
@@ -99,7 +98,6 @@ class Tech:
                 raise TechError(response.status, await response.text())
 
             data = await response.json()
-            _LOGGER.debug("POST request data: %s", data)
             return data
 
     async def authenticate(self, username, password):
@@ -228,7 +226,6 @@ class Tech:
                 for zone in zones:
                     self.zones[zone["zone"]["id"]] = zone
                 self.last_update = now
-        # _LOGGER.debug("self.zones... %s", self.zones)
         return self.zones
 
     async def get_module_tiles(self, module_udid):
@@ -322,7 +319,6 @@ class Tech:
                     for tile in tiles:
                         self.modules[module_udid]["tiles"][tile["id"]] = tile
                 self.modules[module_udid]["last_update"] = now
-            # _LOGGER.debug("🎅 module: %s", self.modules[module_udid])
         return self.modules[module_udid]
 
     async def get_zone(self, module_udid, zone_id):
@@ -351,7 +347,6 @@ class Tech:
 
         """
         await self.module_data(module_udid)
-        # return self.tiles[tile_id]
         return self.modules[module_udid]["tiles"][tile_id]
 
     async def set_const_temp(self, module_udid, zone_id, target_temp):

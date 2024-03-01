@@ -78,21 +78,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _async_finish_controller(self, user_input: dict[str, str]) -> FlowResult:
         """Finish setting up controllers."""
 
-        _LOGGER.debug("🚀 ~ _async_finish_controller:user_input: %s", user_input)
-        _LOGGER.debug("🚀 ~ _async_finish_controller:_init_info: %s", self._init_info)
-        _LOGGER.debug(
-            "🚀 ~ _async_finish_controller:_controllers: %s", self._controllers
-        )
-
         if not user_input["controllers"]:
             return self.async_abort(reason="no_modules")
 
         if self._controllers is not None and user_input is not None:
             controllers = user_input["controllers"]
-            _LOGGER.debug(
-                "controllers: %s",
-                controllers,
-            )
+
             if len(controllers) == 0:
                 return self.async_abort(reason="no_modules")
 
@@ -129,10 +120,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 for obj in self._controllers
                 if obj["controller"].get("id") == int(controllers[0])
             )["controller"]["udid"]
-            _LOGGER.debug(
-                "controller for abort 2: %s",
-                controller_udid,
-            )
+
             await self.async_set_unique_id(controller_udid)
 
             return self.async_create_entry(
@@ -153,19 +141,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         user_input: dict[str, str] | None = None,
     ) -> FlowResult:
         """Handle the selection of controllers."""
-        _LOGGER.debug("🚀 ~ async_step_select_controllers:user_input: %s", user_input)
         if not user_input:
             self._controllers = self._create_controllers_array(
                 validated_input=self._init_info
             )
 
-            _LOGGER.debug(
-                "🚀 ~ async_step_select_controllers:controllers: %s", self._controllers
-            )
-            data_schema = controllers_schema(controllers=self._controllers)
-            _LOGGER.debug(
-                "🚀 ~ async_step_select_controllers:data_schema: %s", data_schema
-            )
             return self.async_show_form(
                 step_id="select_controllers",
                 data_schema=controllers_schema(controllers=self._controllers),
@@ -178,9 +158,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             try:
-                _LOGGER.debug("Context: %s", str(self.context))
                 info = await validate_input(self.hass, user_input)
-                _LOGGER.debug("Info: %s", info)
 
                 # Store info to use in next step
                 self._init_info = info
