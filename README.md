@@ -84,4 +84,4 @@ Everything else might or might not work - needs community help, testing and repo
 
 ## 📝 Copyright & License
 
-Copyright (c) 2024 anarion80 - Released under the [MIT](LICENSE).
+Copyright (c) 2024 anarion80 - Released under the [MIT](LICENSE) license.
