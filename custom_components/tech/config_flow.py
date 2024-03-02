@@ -7,18 +7,25 @@ import voluptuous as vol
 
 from homeassistant import config_entries, core, exceptions
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import (
+    ATTR_ID,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_TOKEN,
+    CONF_USERNAME,
+)
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import aiohttp_client, config_validation as cv
 
-from .const import DOMAIN
+from .const import CONTROLLER, CONTROLLERS, DOMAIN, UDID, USER_ID, VER
 from .tech import Tech, TechError, TechLoginError
 
 _LOGGER = logging.getLogger(__name__)
 
 DATA_SCHEMA = vol.Schema(
     {
-        vol.Required("username"): cv.string,
-        vol.Required("password"): cv.string,
+        vol.Required(CONF_USERNAME): cv.string,
+        vol.Required(CONF_PASSWORD): cv.string,
     }
 )
 
@@ -28,10 +35,10 @@ def controllers_schema(controllers) -> vol.Schema:
 
     return vol.Schema(
         {
-            vol.Optional("controllers"): cv.multi_select(
+            vol.Optional(CONTROLLERS): cv.multi_select(
                 {
-                    str(controller["controller"]["id"]): controller["controller"][
-                        "name"
+                    str(controller[CONTROLLER][ATTR_ID]): controller[CONTROLLER][
+                        CONF_NAME
                     ]
                     for controller in controllers
                 }
@@ -49,16 +56,16 @@ async def validate_input(hass: core.HomeAssistant, data):
     http_session = aiohttp_client.async_get_clientsession(hass)
     api = Tech(http_session)
 
-    if not await api.authenticate(data["username"], data["password"]):
+    if not await api.authenticate(data[CONF_USERNAME], data[CONF_PASSWORD]):
         raise InvalidAuth
 
     modules = await api.list_modules()
 
     # Return info that you want to store in the config entry.
     return {
-        "user_id": api.user_id,
-        "token": api.token,
-        "controllers": modules,
+        USER_ID: api.user_id,
+        CONF_TOKEN: api.token,
+        CONTROLLERS: modules,
     }
 
 
@@ -78,11 +85,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _async_finish_controller(self, user_input: dict[str, str]) -> FlowResult:
         """Finish setting up controllers."""
 
-        if not user_input["controllers"]:
+        if not user_input[CONTROLLERS]:
             return self.async_abort(reason="no_modules")
 
         if self._controllers is not None and user_input is not None:
-            controllers = user_input["controllers"]
+            controllers = user_input[CONTROLLERS]
 
             if len(controllers) == 0:
                 return self.async_abort(reason="no_modules")
@@ -93,9 +100,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 controller = next(
                     obj
                     for obj in self._controllers
-                    if obj["controller"].get("id") == int(controller_id)
+                    if obj[CONTROLLER].get(ATTR_ID) == int(controller_id)
                 )
-                await self.async_set_unique_id(controller["controller"]["udid"])
+                await self.async_set_unique_id(controller[CONTROLLER][UDID])
                 self._abort_if_unique_id_configured()
 
             # process first controllers and add config entries for them
@@ -104,9 +111,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     controller = next(
                         obj
                         for obj in self._controllers
-                        if obj["controller"].get("id") == int(controller_id)
+                        if obj[CONTROLLER].get(ATTR_ID) == int(controller_id)
                     )
-                    await self.async_set_unique_id(controller["controller"]["udid"])
+                    await self.async_set_unique_id(controller[CONTROLLER][UDID])
 
                     _LOGGER.debug("Adding config entry for: %s", controller)
 
@@ -118,8 +125,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             controller_udid = next(
                 obj
                 for obj in self._controllers
-                if obj["controller"].get("id") == int(controllers[0])
-            )["controller"]["udid"]
+                if obj[CONTROLLER].get(ATTR_ID) == int(controllers[0])
+            )[CONTROLLER][UDID]
 
             await self.async_set_unique_id(controller_udid)
 
@@ -127,12 +134,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title=next(
                     obj
                     for obj in self._controllers
-                    if obj["controller"].get("id") == int(controllers[0])
-                )["controller"]["name"],
+                    if obj[CONTROLLER].get(ATTR_ID) == int(controllers[0])
+                )[CONTROLLER][CONF_NAME],
                 data=next(
                     obj
                     for obj in self._controllers
-                    if obj["controller"].get("id") == int(controllers[0])
+                    if obj[CONTROLLER].get(ATTR_ID) == int(controllers[0])
                 ),
             )
 
@@ -179,7 +186,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _create_config_entry(self, controller: dict) -> ConfigEntry:
         return ConfigEntry(
             data=controller,
-            title=controller["controller"]["name"],
+            title=controller[CONTROLLER][CONF_NAME],
             entry_id=uuid.uuid4().hex,
             domain=DOMAIN,
             version=ConfigFlow.VERSION,
@@ -190,17 +197,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def _create_controllers_array(self, validated_input: dict) -> List[dict]:
         return [
             self._create_controller_dict(validated_input, controller_dict)
-            for controller_dict in validated_input["controllers"]
+            for controller_dict in validated_input[CONTROLLERS]
         ]
 
     def _create_controller_dict(
         self, validated_input: dict, controller_dict: dict
     ) -> dict:
         return {
-            "user_id": validated_input["user_id"],
-            "token": validated_input["token"],
-            "controller": controller_dict,
-            "version": controller_dict["version"] + ": " + controller_dict["name"],
+            USER_ID: validated_input[USER_ID],
+            CONF_TOKEN: validated_input[CONF_TOKEN],
+            CONTROLLER: controller_dict,
+            VER: controller_dict[VER] + ": " + controller_dict[CONF_NAME],
         }
 
 

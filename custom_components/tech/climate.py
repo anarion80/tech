@@ -8,9 +8,21 @@ from homeassistant.components.climate import (
     HVACAction,
     HVACMode,
 )
-from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
+from homeassistant.const import (
+    ATTR_IDENTIFIERS,
+    ATTR_MANUFACTURER,
+    ATTR_TEMPERATURE,
+    CONF_DESCRIPTION,
+    CONF_ID,
+    CONF_MODEL,
+    CONF_NAME,
+    CONF_ZONE,
+    STATE_OFF,
+    STATE_ON,
+    UnitOfTemperature,
+)
 
-from .const import DOMAIN
+from .const import CONTROLLER, DOMAIN, UDID, VER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,12 +31,12 @@ SUPPORT_HVAC = [HVACMode.HEAT, HVACMode.OFF]
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     """Set up entry."""
-    udid = config_entry.data["controller"]["udid"]
+    udid = config_entry.data[CONTROLLER][UDID]
     _LOGGER.debug("Setting up entry, controller udid: %s", udid)
     model = (
-        config_entry.data["controller"]["name"]
+        config_entry.data[CONTROLLER][CONF_NAME]
         + ": "
-        + config_entry.data["controller"]["version"]
+        + config_entry.data[CONTROLLER][VER]
     )
     api = hass.data[DOMAIN][config_entry.entry_id]
     zones = await api.get_module_zones(udid)
@@ -41,9 +53,9 @@ class TechThermostat(ClimateEntity):
         _LOGGER.debug("Init TechThermostat...")
         self._udid = udid
         self._api = api
-        self._id = device["zone"]["id"]
-        self._unique_id = udid + "_" + str(device["zone"]["id"])
-        self.device_name = device["description"]["name"]
+        self._id = device[CONF_ZONE][CONF_ID]
+        self._unique_id = udid + "_" + str(device[CONF_ZONE][CONF_ID])
+        self.device_name = device[CONF_DESCRIPTION][CONF_NAME]
         self.manufacturer = "TechControllers"
         self.model = model
         self._temperature = None
@@ -55,10 +67,12 @@ class TechThermostat(ClimateEntity):
     def device_info(self):
         """Returns device information in a dictionary format."""
         return {
-            "identifiers": {(DOMAIN, self._id)},  # Unique identifiers for the device
-            "name": self.device_name,  # Name of the device
-            "model": self.model,  # Model of the device
-            "manufacturer": self.manufacturer,  # Manufacturer of the device
+            ATTR_IDENTIFIERS: {
+                (DOMAIN, self.device_name)
+            },  # Unique identifiers for the device
+            CONF_NAME: self.device_name,  # Name of the device
+            CONF_MODEL: self.model,  # Model of the device
+            ATTR_MANUFACTURER: self.manufacturer,  # Manufacturer of the device
         }
 
     def update_properties(self, device):
@@ -73,41 +87,41 @@ class TechThermostat(ClimateEntity):
 
         """
         # Update device name
-        self._name = device["description"]["name"]
+        self._name = device[CONF_DESCRIPTION][CONF_NAME]
 
         # Update target temperature
-        if device["zone"]["setTemperature"] is not None:
-            self._target_temperature = device["zone"]["setTemperature"] / 10
+        if device[CONF_ZONE]["setTemperature"] is not None:
+            self._target_temperature = device[CONF_ZONE]["setTemperature"] / 10
         else:
             self._target_temperature = None
 
         # Update current temperature
-        if device["zone"]["currentTemperature"] is not None:
-            self._temperature = device["zone"]["currentTemperature"] / 10
+        if device[CONF_ZONE]["currentTemperature"] is not None:
+            self._temperature = device[CONF_ZONE]["currentTemperature"] / 10
         else:
             self._temperature = None
 
         # Update humidity
-        if device["zone"]["humidity"] is not None:
-            self._humidity = device["zone"]["humidity"]
+        if device[CONF_ZONE]["humidity"] is not None:
+            self._humidity = device[CONF_ZONE]["humidity"]
         else:
             self._humidity = None
 
         # Update HVAC state
-        state = device["zone"]["flags"]["relayState"]
-        hvac_mode = device["zone"]["flags"]["algorithm"]
-        if state == "on":
+        state = device[CONF_ZONE]["flags"]["relayState"]
+        hvac_mode = device[CONF_ZONE]["flags"]["algorithm"]
+        if state == STATE_ON:
             if hvac_mode == "heating":
                 self._state = HVACAction.HEATING
             elif hvac_mode == "cooling":
                 self._state = HVACAction.COOLING
-        elif state == "off":
+        elif state == STATE_OFF:
             self._state = HVACAction.IDLE
         else:
             self._state = HVACAction.OFF
 
         # Update HVAC mode
-        mode = device["zone"]["zoneState"]
+        mode = device[CONF_ZONE]["zoneState"]
         if mode in ("zoneOn", "noAlarm"):
             self._mode = HVACMode.HEAT
         else:

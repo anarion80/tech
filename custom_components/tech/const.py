@@ -1,6 +1,14 @@
 """Constants for the Tech Sterowniki integration."""
 
 DOMAIN = "tech"
+CONTROLLER = "controller"
+CONTROLLERS = "controllers"
+VER = "version"
+UDID = "udid"
+USER_ID = "user_id"
+TILES = "tiles"
+VISIBILITY = "visibility"
+VALUE = "value"
 
 DEFAULT_ICON = "mdi:eye"
 

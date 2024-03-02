@@ -5,11 +5,12 @@ import logging
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_TOKEN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import aiohttp_client
 
 from . import assets
-from .const import DOMAIN
+from .const import DOMAIN, USER_ID
 from .tech import Tech
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data.setdefault(DOMAIN, {})
     http_session = aiohttp_client.async_get_clientsession(hass)
     hass.data[DOMAIN][entry.entry_id] = Tech(
-        http_session, entry.data["user_id"], entry.data["token"]
+        http_session, entry.data[USER_ID], entry.data[CONF_TOKEN]
     )
     api = hass.data[DOMAIN][entry.entry_id]
 
