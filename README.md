@@ -49,8 +49,8 @@ Everything else might or might not work - needs community help, testing and repo
 
 ## 🏗 Installation
 
-1. Copy entire repository content into your config/custom_components/tech folder of your Home Assistant installation.
-   **Note:** If you don't have in your installation "custom_components" folder you need to create one and "tech" folder in it.
+1. Copy entire repository content into your `config/custom_components/tech` folder of your Home Assistant installation.
+   **Note:** If you don't have `custom_components` folder you need to create it first and create `tech` folder in it.
 2. Restart Home Assistant.
 3. Go to Configuration -> Integrations and click Add button.
 4. Search for "Tech Controllers" integration and select it.
