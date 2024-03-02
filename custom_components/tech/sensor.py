@@ -1,5 +1,5 @@
 """Support for Tech HVAC system."""
-# import itertools
+import itertools
 import logging
 
 from homeassistant.components.sensor import (
@@ -43,12 +43,10 @@ async def async_setup_entry(
         + config_entry.data["controller"]["version"]
     )
 
-    controller = config_entry.data["controller"]
-    controller_udid = controller["udid"]
+    controller_udid = config_entry.data["controller"]["udid"]
 
-    data = await api.module_data(controller_udid)
-    zones = data["zones"]
-    tiles = data["tiles"]
+    zones = await api.get_module_zones(controller_udid)
+    tiles = await api.get_module_tiles(controller_udid)
 
     entities = []
     for t in tiles:
@@ -76,22 +74,37 @@ async def async_setup_entry(
 
     async_add_entities(entities, True)
 
+    # async_add_entities(
+    #     [
+    #         ZoneTemperatureSensor(zones[zone], api, controller_udid, model)
+    #         for zone in zones
+    #     ],
+    #     True,
+    # )
+
+    battery_devices = map_to_battery_sensors(zones, api, config_entry, model)
+    temperature_sensors = map_to_temperature_sensors(zones, api, config_entry, model)
+    humidity_sensors = map_to_humidity_sensors(zones, api, config_entry, model)
+    # tile_sensors = map_to_tile_sensors(tiles, api, config_entry)
+
     async_add_entities(
-        [
-            ZoneTemperatureSensor(zones[zone], api, controller_udid, model)
-            for zone in zones
-        ],
+        itertools.chain(
+            battery_devices,
+            temperature_sensors,
+            humidity_sensors,  # , tile_sensors
+        ),
         True,
     )
 
 
-def map_to_battery_sensors(zones, api, config_entry):
+def map_to_battery_sensors(zones, api, config_entry, model):
     """Map the battery-operating devices in the zones to TechBatterySensor objects.
 
     Args:
     zones: list of devices
     api: the api object
     config_entry: the config entry object
+    model: device model
 
     Returns:
     - list of TechBatterySensor objects
@@ -101,7 +114,7 @@ def map_to_battery_sensors(zones, api, config_entry):
         lambda deviceIndex: is_battery_operating_device(zones[deviceIndex]), zones
     )
     return (
-        TechBatterySensor(zones[deviceIndex], api, config_entry)
+        TechBatterySensor(zones[deviceIndex], api, config_entry, model)
         for deviceIndex in devices
     )
 
@@ -119,13 +132,14 @@ def is_battery_operating_device(device) -> bool:
     return device["zone"]["batteryLevel"] is not None
 
 
-def map_to_temperature_sensors(zones, api, config_entry):
+def map_to_temperature_sensors(zones, api, config_entry, model):
     """Map the zones to temperature sensors using the provided API and config entry.
 
     Args:
     zones (list): List of zones
     api (object): The API object
     config_entry (object): The config entry object
+    model: device model
 
     Returns:
     list: List of TechTemperatureSensor objects
@@ -135,7 +149,7 @@ def map_to_temperature_sensors(zones, api, config_entry):
         lambda deviceIndex: is_temperature_operating_device(zones[deviceIndex]), zones
     )
     return (
-        TechTemperatureSensor(zones[deviceIndex], api, config_entry)
+        TechTemperatureSensor(zones[deviceIndex], api, config_entry, model)
         for deviceIndex in devices
     )
 
@@ -153,13 +167,14 @@ def is_temperature_operating_device(device) -> bool:
     return device["zone"]["currentTemperature"] is not None
 
 
-def map_to_humidity_sensors(zones, api, config_entry):
+def map_to_humidity_sensors(zones, api, config_entry, model):
     """Map zones to humidity sensors.
 
     Args:
     zones: list of zones
     api: API to interact with humidity sensors
     config_entry: configuration entry for the sensors
+    model: device model
 
     Returns:
     list of TechHumiditySensor instances
@@ -171,7 +186,7 @@ def map_to_humidity_sensors(zones, api, config_entry):
     )
     # Map devices to TechHumiditySensor instances
     return (
-        TechHumiditySensor(zones[deviceIndex], api, config_entry)
+        TechHumiditySensor(zones[deviceIndex], api, config_entry, model)
         for deviceIndex in devices
     )
 
@@ -189,13 +204,14 @@ def is_humidity_operating_device(device) -> bool:
     return device["zone"]["humidity"] is not None and device["zone"]["humidity"] != 0
 
 
-def map_to_tile_sensors(tiles, api, config_entry):
+def map_to_tile_sensors(tiles, api, config_entry, model):
     """Map tiles to corresponding sensor objects based on the device type and create a list of sensor objects.
 
     Args:
     tiles: List of tiles
     api: API object
     config_entry: Configuration entry object
+    model: device model
 
     Returns:
     List of sensor objects
@@ -208,7 +224,7 @@ def map_to_tile_sensors(tiles, api, config_entry):
 
     # Create sensor objects for devices with outside temperature
     devices_objects = (
-        TechOutsideTempTile(tiles[deviceIndex], api, config_entry)
+        TechOutsideTempTile(tiles[deviceIndex], api, config_entry, model)
         for deviceIndex in devices_outside_temperature
     )
 
@@ -235,12 +251,14 @@ class TechBatterySensor(SensorEntity):
     _attr_device_class = SensorDeviceClass.BATTERY
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, config_entry):
+    def __init__(self, device, api, config_entry, model):
         """Initialize the Tech battery sensor."""
         _LOGGER.debug("Init TechBatterySensor... ")
         self._config_entry = config_entry
         self._api = api
         self._id = device["zone"]["id"]
+        self._device_name = device["description"]["name"]
+        self._model = model
         self.update_properties(device)
 
     def update_properties(self, device):
@@ -266,6 +284,22 @@ class TechBatterySensor(SensorEntity):
         """Return the name of the device."""
         return f"{self._name} battery"
 
+    @property
+    def device_info(self):
+        """Get device information.
+
+        Returns:
+        dict: A dictionary containing device information.
+
+        """
+        # Return device information
+        return {
+            "identifiers": {(DOMAIN, self._device_name)},
+            "name": self._device_name,
+            "manufacturer": "TechControllers",
+            "model": self._model,
+        }
+
     async def async_update(self):
         """Call by the Tech device callback to update state."""
         _LOGGER.debug(
@@ -287,12 +321,14 @@ class TechTemperatureSensor(SensorEntity):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, config_entry):
+    def __init__(self, device, api, config_entry, model):
         """Initialize the Tech temperature sensor."""
         _LOGGER.debug("Init TechTemperatureSensor... ")
         self._config_entry = config_entry
         self._api = api
         self._id = device["zone"]["id"]
+        self._device_name = device["description"]["name"]
+        self._model = model
         self.update_properties(device)
 
     def update_properties(self, device):
@@ -324,6 +360,22 @@ class TechTemperatureSensor(SensorEntity):
         """Return the name of the device."""
         return f"{self._name} temperature"
 
+    @property
+    def device_info(self):
+        """Get device information.
+
+        Returns:
+        dict: A dictionary containing device information.
+
+        """
+        # Return device information
+        return {
+            "identifiers": {(DOMAIN, self._device_name)},
+            "name": self._device_name,
+            "manufacturer": "TechControllers",
+            "model": self._model,
+        }
+
     async def async_update(self):
         """Call by the Tech device callback to update state."""
         _LOGGER.debug(
@@ -345,12 +397,14 @@ class TechOutsideTempTile(SensorEntity):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, config_entry):
+    def __init__(self, device, api, config_entry, model):
         """Initialize the Tech temperature sensor."""
         _LOGGER.debug("Init TechOutsideTemperatureTile... ")
         self._config_entry = config_entry
         self._api = api
         self._id = device["id"]
+        self._device_name = device["description"]["name"]
+        self._model = model
         self.update_properties(device)
         _LOGGER.debug(
             "Init TechOutsideTemperatureTile...: %s, udid: %s, id: %s",
@@ -389,6 +443,22 @@ class TechOutsideTempTile(SensorEntity):
         """Return the name of the device."""
         return f"{self._name} temperature"
 
+    @property
+    def device_info(self):
+        """Get device information.
+
+        Returns:
+        dict: A dictionary containing device information.
+
+        """
+        # Return device information
+        return {
+            "identifiers": {(DOMAIN, self._device_name)},
+            "name": self._device_name,
+            "manufacturer": "TechControllers",
+            "model": self._model,
+        }
+
     async def async_update(self):
         """Call by the Tech device callback to update state."""
         _LOGGER.debug(
@@ -410,12 +480,14 @@ class TechHumiditySensor(SensorEntity):
     _attr_device_class = SensorDeviceClass.HUMIDITY
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, config_entry):
+    def __init__(self, device, api, config_entry, model):
         """Initialize the Tech humidity sensor."""
         _LOGGER.debug("Init TechHumiditySensor... ")
         self._config_entry = config_entry
         self._api = api
         self._id = device["zone"]["id"]
+        self._device_name = device["description"]["name"]
+        self._model = model
         self.update_properties(device)
 
     def update_properties(self, device):
@@ -446,6 +518,22 @@ class TechHumiditySensor(SensorEntity):
     def name(self):
         """Return the name of the device."""
         return f"{self._name} humidity"
+
+    @property
+    def device_info(self):
+        """Get device information.
+
+        Returns:
+        dict: A dictionary containing device information.
+
+        """
+        # Return device information
+        return {
+            "identifiers": {(DOMAIN, self._device_name)},
+            "name": self._device_name,
+            "manufacturer": "TechControllers",
+            "model": self._model,
+        }
 
     async def async_update(self):
         """Call by the Tech device callback to update state."""
