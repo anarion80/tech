@@ -210,7 +210,7 @@ class Tech:
         async with self.update_lock:
             now = time.time()
             _LOGGER.debug(
-                "Geting module zones: now: %s, last_update %s, interval: %s",
+                "Getting module zones: now: %s, last_update %s, interval: %s",
                 now,
                 self.last_update,
                 self.update_interval,
@@ -246,7 +246,7 @@ class Tech:
         async with self.update_lock:
             now = time.time()
             _LOGGER.debug(
-                "Geting module tiles: now: %s, last_update %s, interval: %s",
+                "Getting module tiles: now: %s, last_update %s, interval: %s",
                 now,
                 self.last_update,
                 self.update_interval,
@@ -283,12 +283,12 @@ class Tech:
         """
         async with self.update_lock:
             now = time.time()
-            _LOGGER.debug("Geting tiles for controller: %s", module_udid)
+            _LOGGER.debug("Getting tiles for controller: %s", module_udid)
             self.modules.setdefault(
                 module_udid, {"last_update": None, "zones": {}, "tiles": {}}
             )
             _LOGGER.debug(
-                "Geting tiles if now=%s, > last_update=%s + interval=%s",
+                "Getting tiles if now=%s, > last_update=%s + interval=%s",
                 now,
                 self.modules[module_udid]["last_update"],
                 self.update_interval,
@@ -297,8 +297,10 @@ class Tech:
                 self.modules[module_udid]["last_update"] is None
                 or now > self.modules[module_udid]["last_update"] + self.update_interval
             ):
+                _LOGGER.debug("Updating module zones & tiles cache... %s", module_udid)
                 result = await self.get_module_data(module_udid)
                 zones = result["zones"]["elements"]
+                zones = list(filter(lambda e: e["zone"]["visibility"], zones))
                 if len(zones) > 0:
                     _LOGGER.debug(
                         "Updating zones cache for controller: %s", module_udid
@@ -310,14 +312,16 @@ class Tech:
                         )
                     )
                     for zone in zones:
-                        self.modules[module_udid]["zones"][zone["zone"]["id"]] = zone
+                        self.zones[zone["zone"]["id"]] = zone
                 tiles = result["tiles"]
+                tiles = list(filter(lambda e: e["visibility"], tiles))
+                _LOGGER.debug("Getting tiles in module_data: %s", tiles)
                 if len(tiles) > 0:
                     _LOGGER.debug(
                         "Updating tiles cache for controller: %s", module_udid
                     )
                     for tile in tiles:
-                        self.modules[module_udid]["tiles"][tile["id"]] = tile
+                        self.tiles[tile["id"]] = tile
                 self.modules[module_udid]["last_update"] = now
         return self.modules[module_udid]
 
@@ -346,8 +350,8 @@ class Tech:
         Dictionary of tile.
 
         """
-        await self.module_data(module_udid)
-        return self.modules[module_udid]["tiles"][tile_id]
+        await self.get_module_tiles(module_udid)
+        return self.tiles[tile_id]
 
     async def set_const_temp(self, module_udid, zone_id, target_temp):
         """Set constant temperature of the zone.
