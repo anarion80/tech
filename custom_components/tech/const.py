@@ -3,6 +3,8 @@
 from datetime import timedelta
 from typing import Final
 
+from homeassistant.const import Platform
+
 DOMAIN = "tech"
 CONTROLLER = "controller"
 CONTROLLERS = "controllers"
@@ -14,6 +16,8 @@ VISIBILITY = "visibility"
 VALUE = "value"
 
 DEFAULT_ICON = "mdi:eye"
+
+PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR, Platform.CLIMATE]
 
 SCAN_INTERVAL: Final = timedelta(seconds=120)
 API_TIMEOUT: Final = 30

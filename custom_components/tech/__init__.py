@@ -3,7 +3,6 @@ import asyncio
 import logging
 
 from aiohttp import ClientSession
-import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_TOKEN
@@ -13,14 +12,18 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from . import assets
-from .const import API_TIMEOUT, CONTROLLER, DOMAIN, SCAN_INTERVAL, UDID, USER_ID
+from .const import (
+    API_TIMEOUT,
+    CONTROLLER,
+    DOMAIN,
+    PLATFORMS,
+    SCAN_INTERVAL,
+    UDID,
+    USER_ID,
+)
 from .tech import Tech, TechError, TechLoginError
 
 _LOGGER = logging.getLogger(__name__)
-CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
-
-# List the platforms that you want to support.
-PLATFORMS = ["climate", "sensor", "binary_sensor"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict):  # pylint: disable=unused-argument
