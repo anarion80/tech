@@ -20,12 +20,12 @@
             },
             "select_controllers": {
                 "title": "Wybór sterownika",
-                "description": "Wybierz sterwoniki, które chcesz zintegrować.",
+                "description": "Wybierz sterowniki, które chcesz zintegrować.",
                 "data": {
                     "controllers": "Sterowniki do zintegrowania"
                 }
             }
         }
     },
-    "title": "Tech Sterwoniki"
+    "title": "Tech Sterowniki"
 }
