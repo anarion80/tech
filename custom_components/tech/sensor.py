@@ -1,6 +1,7 @@
 """Support for Tech HVAC system."""
 import itertools
 import logging
+from typing import Any, Dict
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -19,6 +20,8 @@ from homeassistant.const import (
     CONF_TYPE,
     CONF_ZONE,
     PERCENTAGE,
+    STATE_OFF,
+    STATE_ON,
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant
@@ -349,6 +352,9 @@ class TechTemperatureSensor(SensorEntity):
         self._config_entry = config_entry
         self._api = api
         self._id = device[CONF_ZONE][CONF_ID]
+        self._unique_id = (
+            config_entry.data[CONTROLLER][UDID] + "_" + str(device[CONF_ID])
+        )
         self._device_name = device[CONF_DESCRIPTION][CONF_NAME]
         self._model = model
         self._manufacturer = "TechControllers"
@@ -690,16 +696,15 @@ class TileSensor(TileEntity, Entity):
         """Get the state of the device."""
 
 
-class TileTemperatureSensor(TileSensor):
+class TileTemperatureSensor(TileSensor, SensorEntity):
     """Representation of a Tile Temperature Sensor."""
-
-    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
-    _attr_device_class = SensorDeviceClass.TEMPERATURE
-    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, device, api, controller_udid):
         """Initialize the sensor."""
         TileSensor.__init__(self, device, api, controller_udid)
+        self.native_unit_of_measurement = UnitOfTemperature.CELSIUS
+        self.device_class = SensorDeviceClass.TEMPERATURE
+        self.state_class = SensorStateClass.MEASUREMENT
 
     def get_state(self, device):
         """Get the state of the device."""
@@ -769,25 +774,57 @@ class TileWidgetSensor(TileSensor):
         return device[CONF_PARAMS]["widget2"][VALUE] / 10
 
 
-class TileValveSensor(TileSensor):
+class TileValveSensor(TileSensor, SensorEntity):
     """Representation of a Tile Valve Sensor."""
-
-    _attr_native_unit_of_measurement = PERCENTAGE
-    _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, device, api, controller_udid):
         """Initialize the sensor."""
         TileSensor.__init__(self, device, api, controller_udid)
+        self.native_unit_of_measurement = PERCENTAGE
+        self.state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = assets.get_icon_by_type(device[CONF_TYPE])
         name = assets.get_text_by_type(device[CONF_TYPE])
         self._name = f"{name} {device[CONF_PARAMS]['valveNumber']}"
+        self.attrs: Dict[str, Any] = {}
 
     def get_state(self, device):
         """Get the state of the device."""
         return device[CONF_PARAMS]["openingPercentage"]
 
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return the state attributes."""
+        attributes = {}
+        attributes.update(self.attrs)
+        return attributes
 
-class TileMixingValveSensor(TileSensor):
+    def update_properties(self, device):
+        """Update the properties of the device based on the provided device information.
+
+        Args:
+        device: dict, the device information containing description, zone, setTemperature, and currentTemperature
+
+        Returns:
+        None
+
+        """
+        self._state = self.get_state(device)
+        self.attrs["currentTemp"] = device[CONF_PARAMS]["currentTemp"] / 10
+        self.attrs["returnTemp"] = device[CONF_PARAMS]["returnTemp"] / 10
+        self.attrs["setTempCorrection"] = device[CONF_PARAMS]["setTempCorrection"]
+        self.attrs["valvePump"] = (
+            STATE_ON if device[CONF_PARAMS]["valvePump"] == "1" else STATE_OFF
+        )
+        self.attrs["boilerProtection"] = (
+            STATE_ON if device[CONF_PARAMS]["boilerProtection"] == "1" else STATE_OFF
+        )
+        self.attrs["returnProtection"] = (
+            STATE_ON if device[CONF_PARAMS]["returnProtection"] == "1" else STATE_OFF
+        )
+        self.attrs["setTemp"] = device[CONF_PARAMS]["setTemp"]
+
+
+class TileMixingValveSensor(TileSensor, SensorEntity):
     """Representation of a Tile Mixing Valve Sensor."""
 
     _attr_native_unit_of_measurement = PERCENTAGE
@@ -796,6 +833,8 @@ class TileMixingValveSensor(TileSensor):
     def __init__(self, device, api, controller_udid):
         """Initialize the sensor."""
         TileSensor.__init__(self, device, api, controller_udid)
+        self.native_unit_of_measurement = PERCENTAGE
+        self.state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = assets.get_icon_by_type(device[CONF_TYPE])
         name = assets.get_text_by_type(device[CONF_TYPE])
         self._name = f"{name} {device[CONF_PARAMS]['valveNumber']}"
