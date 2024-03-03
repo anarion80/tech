@@ -42,7 +42,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
                     tile,
                     coordinator,
                     controller_udid,
-                    binary_sensor.DEVICE_CLASS_MOTION,
+                    binary_sensor.BinarySensorDeviceClass.MOTION,
                 )
             )
         if tile[CONF_TYPE] == TYPE_ADDITIONAL_PUMP:
