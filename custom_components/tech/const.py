@@ -1,5 +1,8 @@
 """Constants for the Tech Sterowniki integration."""
 
+from datetime import timedelta
+from typing import Final
+
 DOMAIN = "tech"
 CONTROLLER = "controller"
 CONTROLLERS = "controllers"
@@ -11,6 +14,9 @@ VISIBILITY = "visibility"
 VALUE = "value"
 
 DEFAULT_ICON = "mdi:eye"
+
+SCAN_INTERVAL: Final = timedelta(seconds=120)
+API_TIMEOUT: Final = 30
 
 # tile type
 TYPE_TEMPERATURE = 1

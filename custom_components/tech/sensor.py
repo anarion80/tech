@@ -24,10 +24,10 @@ from homeassistant.const import (
     STATE_ON,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import Entity
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import assets
+from . import TechCoordinator, assets
 from .const import (
     CONTROLLER,
     DOMAIN,
@@ -56,17 +56,13 @@ async def async_setup_entry(
         "Setting up sensor entry, controller udid: %s",
         config_entry.data[CONTROLLER][UDID],
     )
-    api = hass.data[DOMAIN][config_entry.entry_id]
-    model = (
-        config_entry.data[CONTROLLER][CONF_NAME]
-        + ": "
-        + config_entry.data[CONTROLLER][VER]
-    )
-
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]
     controller_udid = config_entry.data[CONTROLLER][UDID]
 
-    zones = await api.get_module_zones(controller_udid)
-    tiles = await api.get_module_tiles(controller_udid)
+    zones = await coordinator.api.get_module_zones(controller_udid)
+    tiles = await coordinator.api.get_module_tiles(controller_udid)
+    _LOGGER.debug("Setting up sensor entry, zones: %s", zones)
+    _LOGGER.debug("Setting up sensor entry, tiles: %s", tiles)
 
     entities = []
     for t in tiles:
@@ -74,37 +70,37 @@ async def async_setup_entry(
         if tile[VISIBILITY] is False:
             continue
         if tile[CONF_TYPE] == TYPE_TEMPERATURE:
-            entities.append(TileTemperatureSensor(tile, api, controller_udid))
+            entities.append(TileTemperatureSensor(tile, coordinator, controller_udid))
         if tile[CONF_TYPE] == TYPE_TEMPERATURE_CH:
-            entities.append(TileWidgetSensor(tile, api, controller_udid))
+            entities.append(TileWidgetSensor(tile, coordinator, controller_udid))
         if tile[CONF_TYPE] == TYPE_FAN:
-            entities.append(TileFanSensor(tile, api, controller_udid))
+            entities.append(TileFanSensor(tile, coordinator, controller_udid))
         if tile[CONF_TYPE] == TYPE_VALVE:
-            entities.append(TileValveSensor(tile, api, controller_udid))
+            entities.append(TileValveSensor(tile, coordinator, controller_udid))
             # TODO: this class _init_ definition needs to be fixed. See comment below.
             # entities.append(TileValveTemperatureSensor(tile, api, controller_udid, VALVE_SENSOR_RETURN_TEMPERATURE))
             # entities.append(TileValveTemperatureSensor(tile, api, controller_udid, VALVE_SENSOR_SET_TEMPERATURE))
             # entities.append(TileValveTemperatureSensor(tile, api, controller_udid, VALVE_SENSOR_CURRENT_TEMPERATURE))
         if tile[CONF_TYPE] == TYPE_MIXING_VALVE:
-            entities.append(TileMixingValveSensor(tile, api, controller_udid))
+            entities.append(TileMixingValveSensor(tile, coordinator, controller_udid))
         if tile[CONF_TYPE] == TYPE_FUEL_SUPPLY:
-            entities.append(TileFuelSupplySensor(tile, api, controller_udid))
+            entities.append(TileFuelSupplySensor(tile, coordinator, controller_udid))
         if tile[CONF_TYPE] == TYPE_TEXT:
-            entities.append(TileTextSensor(tile, api, controller_udid))
+            entities.append(TileTextSensor(tile, coordinator, controller_udid))
 
     async_add_entities(entities, True)
 
     # async_add_entities(
     #     [
-    #         ZoneTemperatureSensor(zones[zone], api, controller_udid, model)
+    #         ZoneTemperatureSensor(zones[zone], coordinator, controller_udid, model)
     #         for zone in zones
     #     ],
     #     True,
     # )
 
-    battery_devices = map_to_battery_sensors(zones, api, config_entry, model)
-    temperature_sensors = map_to_temperature_sensors(zones, api, config_entry, model)
-    humidity_sensors = map_to_humidity_sensors(zones, api, config_entry, model)
+    battery_devices = map_to_battery_sensors(zones, coordinator, config_entry)
+    temperature_sensors = map_to_temperature_sensors(zones, coordinator, config_entry)
+    humidity_sensors = map_to_humidity_sensors(zones, coordinator, config_entry)
     # tile_sensors = map_to_tile_sensors(tiles, api, config_entry)
 
     async_add_entities(
@@ -117,12 +113,12 @@ async def async_setup_entry(
     )
 
 
-def map_to_battery_sensors(zones, api, config_entry, model):
+def map_to_battery_sensors(zones, coordinator, config_entry):
     """Map the battery-operating devices in the zones to TechBatterySensor objects.
 
     Args:
     zones: list of devices
-    api: the api object
+    coordinator: the api object
     config_entry: the config entry object
     model: device model
 
@@ -134,7 +130,7 @@ def map_to_battery_sensors(zones, api, config_entry, model):
         lambda deviceIndex: is_battery_operating_device(zones[deviceIndex]), zones
     )
     return (
-        TechBatterySensor(zones[deviceIndex], api, config_entry, model)
+        ZoneBatterySensor(zones[deviceIndex], coordinator, config_entry)
         for deviceIndex in devices
     )
 
@@ -152,12 +148,12 @@ def is_battery_operating_device(device) -> bool:
     return device[CONF_ZONE]["batteryLevel"] is not None
 
 
-def map_to_temperature_sensors(zones, api, config_entry, model):
+def map_to_temperature_sensors(zones, coordinator, config_entry):
     """Map the zones to temperature sensors using the provided API and config entry.
 
     Args:
     zones (list): List of zones
-    api (object): The API object
+    coordinator (object): The API object
     config_entry (object): The config entry object
     model: device model
 
@@ -169,7 +165,7 @@ def map_to_temperature_sensors(zones, api, config_entry, model):
         lambda deviceIndex: is_temperature_operating_device(zones[deviceIndex]), zones
     )
     return (
-        TechTemperatureSensor(zones[deviceIndex], api, config_entry, model)
+        ZoneTemperatureSensor(zones[deviceIndex], coordinator, config_entry)
         for deviceIndex in devices
     )
 
@@ -187,12 +183,12 @@ def is_temperature_operating_device(device) -> bool:
     return device[CONF_ZONE]["currentTemperature"] is not None
 
 
-def map_to_humidity_sensors(zones, api, config_entry, model):
+def map_to_humidity_sensors(zones, coordinator, config_entry):
     """Map zones to humidity sensors.
 
     Args:
     zones: list of zones
-    api: API to interact with humidity sensors
+    coordinator: API to interact with humidity sensors
     config_entry: configuration entry for the sensors
     model: device model
 
@@ -206,7 +202,7 @@ def map_to_humidity_sensors(zones, api, config_entry, model):
     )
     # Map devices to TechHumiditySensor instances
     return (
-        TechHumiditySensor(zones[deviceIndex], api, config_entry, model)
+        ZoneHumiditySensor(zones[deviceIndex], coordinator, config_entry)
         for deviceIndex in devices
     )
 
@@ -226,12 +222,12 @@ def is_humidity_operating_device(device) -> bool:
     )
 
 
-def map_to_tile_sensors(tiles, api, config_entry, model):
+def map_to_tile_sensors(tiles, coordinator, config_entry):
     """Map tiles to corresponding sensor objects based on the device type and create a list of sensor objects.
 
     Args:
     tiles: List of tiles
-    api: API object
+    coordinator: API object
     config_entry: Configuration entry object
     model: device model
 
@@ -246,7 +242,7 @@ def map_to_tile_sensors(tiles, api, config_entry, model):
 
     # Create sensor objects for devices with outside temperature
     devices_objects = (
-        TechOutsideTempTile(tiles[deviceIndex], api, config_entry, model)
+        ZoneOutsideTempTile(tiles[deviceIndex], coordinator, config_entry)
         for deviceIndex in devices_outside_temperature
     )
 
@@ -266,21 +262,26 @@ def is_outside_temperature_tile(device) -> bool:
     return device[CONF_PARAMS][CONF_DESCRIPTION] == "Temperature sensor"
 
 
-class TechBatterySensor(SensorEntity):
+class TechBatterySensor(CoordinatorEntity, SensorEntity):
     """Representation of a Tech battery sensor."""
 
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_device_class = SensorDeviceClass.BATTERY
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, config_entry, model):
+    def __init__(self, device, coordinator: TechCoordinator, config_entry):
         """Initialize the Tech battery sensor."""
         _LOGGER.debug("Init TechBatterySensor... ")
+        super().__init__(coordinator)
         self._config_entry = config_entry
-        self._api = api
+        self._coordinator = coordinator
         self._id = device[CONF_ZONE][CONF_ID]
         self._device_name = device[CONF_DESCRIPTION][CONF_NAME]
-        self._model = model
+        self._model = (
+            config_entry.data[CONTROLLER][CONF_NAME]
+            + ": "
+            + config_entry.data[CONTROLLER][VER]
+        )
         self._manufacturer = "TechControllers"
         self.update_properties(device)
 
@@ -296,6 +297,12 @@ class TechBatterySensor(SensorEntity):
         """
         self._name = device[CONF_DESCRIPTION][CONF_NAME]
         self._attr_native_value = device[CONF_ZONE]["batteryLevel"]
+
+    @callback
+    def _handle_coordinator_update(self, *args: Any) -> None:
+        """Handle updated data from the coordinator."""
+        self.update_properties(self._coordinator.data["zones"][self._id])
+        self.async_write_ha_state()
 
     @property
     def unique_id(self) -> str:
@@ -325,38 +332,32 @@ class TechBatterySensor(SensorEntity):
             ATTR_MANUFACTURER: self._manufacturer,  # Manufacturer of the device
         }
 
-    async def async_update(self):
-        """Call by the Tech device callback to update state."""
-        _LOGGER.debug(
-            "Updating Tech battery sensor: %s, udid: %s, id: %s",
-            self._name,
-            self._config_entry.data[CONTROLLER][UDID],
-            self._id,
-        )
-        device = await self._api.get_zone(
-            self._config_entry.data[CONTROLLER][UDID], self._id
-        )
-        self.update_properties(device)
 
-
-class TechTemperatureSensor(SensorEntity):
+class TechTemperatureSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Tech temperature sensor."""
 
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, config_entry, model):
+    def __init__(
+        self, device: Dict, coordinator: TechCoordinator, config_entry: ConfigEntry
+    ):
         """Initialize the Tech temperature sensor."""
         _LOGGER.debug("Init TechTemperatureSensor... ")
+        super().__init__(coordinator)
         self._config_entry = config_entry
-        self._api = api
+        self._coordinator = coordinator
         self._id = device[CONF_ZONE][CONF_ID]
         self._unique_id = (
-            config_entry.data[CONTROLLER][UDID] + "_" + str(device[CONF_ID])
+            config_entry.data[CONTROLLER][UDID] + "_" + str(device[CONF_ZONE][CONF_ID])
         )
         self._device_name = device[CONF_DESCRIPTION][CONF_NAME]
-        self._model = model
+        self._model = (
+            config_entry.data[CONTROLLER][CONF_NAME]
+            + ": "
+            + config_entry.data[CONTROLLER][VER]
+        )
         self._manufacturer = "TechControllers"
         self.update_properties(device)
 
@@ -378,6 +379,12 @@ class TechTemperatureSensor(SensorEntity):
             self._attr_native_value = device[CONF_ZONE]["currentTemperature"] / 10
         else:
             self._attr_native_value = None
+
+    @callback
+    def _handle_coordinator_update(self, *args: Any) -> None:
+        """Handle updated data from the coordinator."""
+        self.update_properties(self._coordinator.data["zones"][self._id])
+        self.async_write_ha_state()
 
     @property
     def unique_id(self) -> str:
@@ -407,35 +414,29 @@ class TechTemperatureSensor(SensorEntity):
             ATTR_MANUFACTURER: self._manufacturer,  # Manufacturer of the device
         }
 
-    async def async_update(self):
-        """Call by the Tech device callback to update state."""
-        _LOGGER.debug(
-            "Updating Tech temp. sensor: %s, udid: %s, id: %s",
-            self._name,
-            self._config_entry.data[CONTROLLER][UDID],
-            self._id,
-        )
-        device = await self._api.get_zone(
-            self._config_entry.data[CONTROLLER][UDID], self._id
-        )
-        self.update_properties(device)
 
-
-class TechOutsideTempTile(SensorEntity):
+class TechOutsideTempTile(CoordinatorEntity, SensorEntity):
     """Representation of a Tech outside temperature tile sensor."""
 
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, config_entry, model):
+    def __init__(
+        self, device: Dict, coordinator: TechCoordinator, config_entry: ConfigEntry
+    ):
         """Initialize the Tech temperature sensor."""
         _LOGGER.debug("Init TechOutsideTemperatureTile... ")
+        super().__init__(coordinator)
         self._config_entry = config_entry
-        self._api = api
+        self._coordinator = coordinator
         self._id = device[CONF_ID]
         self._device_name = device[CONF_DESCRIPTION][CONF_NAME]
-        self._model = model
+        self._model = (
+            config_entry.data[CONTROLLER][CONF_NAME]
+            + ": "
+            + config_entry.data[CONTROLLER][VER]
+        )
         self._manufacturer = "TechControllers"
         self.update_properties(device)
         _LOGGER.debug(
@@ -465,6 +466,12 @@ class TechOutsideTempTile(SensorEntity):
             # Set native value to None if device params value is None
             self._attr_native_value = None
 
+    @callback
+    def _handle_coordinator_update(self, *args: Any) -> None:
+        """Handle updated data from the coordinator."""
+        self.update_properties(self._coordinator.data["tiles"][self._id])
+        self.async_write_ha_state()
+
     @property
     def unique_id(self) -> str:
         """Return a unique ID."""
@@ -493,35 +500,29 @@ class TechOutsideTempTile(SensorEntity):
             ATTR_MANUFACTURER: self._manufacturer,  # Manufacturer of the device
         }
 
-    async def async_update(self):
-        """Call by the Tech device callback to update state."""
-        _LOGGER.debug(
-            "Updating Tech outs. temp. tile sensor: %s, udid: %s, id: %s",
-            self._name,
-            self._config_entry.data[CONTROLLER][UDID],
-            self._id,
-        )
-        device = await self._api.get_tile(
-            self._config_entry.data[CONTROLLER][UDID], self._id
-        )
-        self.update_properties(device)
 
-
-class TechHumiditySensor(SensorEntity):
+class TechHumiditySensor(CoordinatorEntity, SensorEntity):
     """Representation of a Tech humidity sensor."""
 
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_device_class = SensorDeviceClass.HUMIDITY
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, config_entry, model):
+    def __init__(
+        self, device: Dict, coordinator: TechCoordinator, config_entry: ConfigEntry
+    ):
         """Initialize the Tech humidity sensor."""
         _LOGGER.debug("Init TechHumiditySensor... ")
+        super().__init__(coordinator)
         self._config_entry = config_entry
-        self._api = api
+        self._coordinator = coordinator
         self._id = device[CONF_ZONE][CONF_ID]
         self._device_name = device[CONF_DESCRIPTION][CONF_NAME]
-        self._model = model
+        self._model = (
+            config_entry.data[CONTROLLER][CONF_NAME]
+            + ": "
+            + config_entry.data[CONTROLLER][VER]
+        )
         self._manufacturer = "TechControllers"
         self.update_properties(device)
 
@@ -543,6 +544,12 @@ class TechHumiditySensor(SensorEntity):
             self._attr_native_value = device[CONF_ZONE]["humidity"]
         else:
             self._attr_native_value = None
+
+    @callback
+    def _handle_coordinator_update(self, *args: Any) -> None:
+        """Handle updated data from the coordinator."""
+        self.update_properties(self._coordinator.data["zones"][self._id])
+        self.async_write_ha_state()
 
     @property
     def unique_id(self) -> str:
@@ -572,31 +579,28 @@ class TechHumiditySensor(SensorEntity):
             ATTR_MANUFACTURER: self._manufacturer,  # Manufacturer of the device
         }
 
-    async def async_update(self):
-        """Call by the Tech device callback to update state."""
-        _LOGGER.debug(
-            "Updating Tech hum. sensor: %s, udid: %s, id: %s",
-            self._name,
-            self._config_entry.data[CONTROLLER][UDID],
-            self._id,
-        )
-        device = await self._api.get_zone(
-            self._config_entry.data[CONTROLLER][UDID], self._id
-        )
-        self.update_properties(device)
 
-
-class ZoneSensor(Entity):
+class ZoneSensor(CoordinatorEntity, SensorEntity):
     """Representation of a Zone Sensor."""
 
-    def __init__(self, device, api, controller_udid, model):
+    def __init__(
+        self, device: Dict, coordinator: TechCoordinator, config_entry: ConfigEntry
+    ):
         """Initialize the sensor."""
         _LOGGER.debug("Init ZoneSensor...")
-        self._controller_udid = controller_udid
-        self._api = api
+        super().__init__(coordinator)
+        self._config_entry = config_entry
+        self._coordinator = coordinator
         self._id = device[CONF_ZONE][CONF_ID]
+        self._unique_id = (
+            config_entry.data[CONTROLLER][UDID] + "_" + str(device[CONF_ZONE][CONF_ID])
+        )
         self._device_name = device[CONF_DESCRIPTION][CONF_NAME]
-        self._model = model
+        self._model = (
+            config_entry.data[CONTROLLER][CONF_NAME]
+            + ": "
+            + config_entry.data[CONTROLLER][VER]
+        )
         self._manufacturer = "TechControllers"
         self.update_properties(device)
 
@@ -625,6 +629,12 @@ class ZoneSensor(Entity):
         else:
             self._temperature = None
 
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self.update_properties(self._coordinator.data["zones"][self._id])
+        self.async_write_ha_state()
+
     @property
     def device_info(self):
         """Get device information.
@@ -636,7 +646,7 @@ class ZoneSensor(Entity):
         # Return device information
         return {
             ATTR_IDENTIFIERS: {
-                (DOMAIN, self.unique_id)
+                (DOMAIN, self._device_name)
             },  # Unique identifiers for the device
             CONF_NAME: self._device_name,  # Name of the device
             CONF_MODEL: self._model,  # Model of the device
@@ -653,23 +663,6 @@ class ZoneSensor(Entity):
         """Return the name of the sensor."""
         return self._name
 
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._temperature
-
-    @property
-    def unit_of_measurement(self):
-        """Return the unit of measurement."""
-        return UnitOfTemperature.CELSIUS
-
-    async def async_update(self):
-        """Asynchronously updates the device."""
-        # Get zone from API
-        device = await self._api.get_zone(self._controller_udid, self.unique_id)
-        # Update properties
-        self.update_properties(device)
-
 
 class ZoneTemperatureSensor(ZoneSensor):
     """Representation of a Zone Temperature Sensor."""
@@ -684,12 +677,132 @@ class ZoneTemperatureSensor(ZoneSensor):
         return f"{self._name} Temperature"
 
     @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._temperature
+    def unique_id(self) -> str:
+        """Return a unique ID."""
+        return f"climate_{self._id}_battery"
+
+    def update_properties(self, device):
+        """Update the properties of the TechTemperatureSensor object.
+
+        Args:
+        device: dict, the device data containing information about the device
+
+        Returns:
+        None
+
+        """
+        # Set the name of the device
+        self._name = device[CONF_DESCRIPTION][CONF_NAME]
+
+        # Check if the current temperature is available, and update the native value accordingly
+        if device[CONF_ZONE]["currentTemperature"] is not None:
+            self._attr_native_value = device[CONF_ZONE]["currentTemperature"] / 10
+        else:
+            self._attr_native_value = None
 
 
-class TileSensor(TileEntity, Entity):
+class ZoneBatterySensor(ZoneSensor):
+    """Representation of a Zone Temperature Sensor."""
+
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_device_class = SensorDeviceClass.BATTERY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def name(self):
+        """Return the name of the device."""
+        return f"{self._name} battery"
+
+    def update_properties(self, device):
+        """Update properties from the TechBatterySensor object.
+
+        Args:
+        device: dict, the device data containing information about the device
+
+        Returns:
+        None
+
+        """
+        self._name = device[CONF_DESCRIPTION][CONF_NAME]
+        self._attr_native_value = device[CONF_ZONE]["batteryLevel"]
+
+
+class ZoneHumiditySensor(ZoneSensor):
+    """Representation of a Zone Temperature Sensor."""
+
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_device_class = SensorDeviceClass.HUMIDITY
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def unique_id(self) -> str:
+        """Return a unique ID."""
+        return f"climate_{self._id}_humidity"
+
+    @property
+    def name(self):
+        """Return the name of the device."""
+        return f"{self._name} humidity"
+
+    def update_properties(self, device):
+        """Update the properties of the TechHumiditySensor object.
+
+        Args:
+        device (dict): The device information.
+
+        Returns:
+        None
+
+        """
+        # Update the name of the device
+        self._name = device[CONF_DESCRIPTION][CONF_NAME]
+
+        # Check if the humidity value is not zero and update the native value attribute accordingly
+        if device[CONF_ZONE]["humidity"] != 0:
+            self._attr_native_value = device[CONF_ZONE]["humidity"]
+        else:
+            self._attr_native_value = None
+
+
+class ZoneOutsideTempTile(ZoneSensor):
+    """Representation of a Zone Temperature Sensor."""
+
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    @property
+    def unique_id(self) -> str:
+        """Return a unique ID."""
+        return f"climate_{self._id}_out_temperature"
+
+    @property
+    def name(self):
+        """Return the name of the device."""
+        return f"{self._name} temperature"
+
+    def update_properties(self, device):
+        """Update the properties of the TechOutsideTempTile object.
+
+        Args:
+        device: dict containing information about the device
+
+        Returns:
+        None
+
+        """
+        # Set the name based on the device id
+        self._name = "outside_" + str(device[CONF_ID])
+
+        if device[CONF_PARAMS][VALUE] is not None:
+            # Update the native value based on the device params
+            self._attr_native_value = device[CONF_PARAMS][VALUE] / 10
+        else:
+            # Set native value to None if device params value is None
+            self._attr_native_value = None
+
+
+class TileSensor(TileEntity, CoordinatorEntity):
     """Representation of a TileSensor."""
 
     def get_state(self, device):
@@ -699,9 +812,9 @@ class TileSensor(TileEntity, Entity):
 class TileTemperatureSensor(TileSensor, SensorEntity):
     """Representation of a Tile Temperature Sensor."""
 
-    def __init__(self, device, api, controller_udid):
+    def __init__(self, device, coordinator: TechCoordinator, controller_udid):
         """Initialize the sensor."""
-        TileSensor.__init__(self, device, api, controller_udid)
+        TileSensor.__init__(self, device, coordinator, controller_udid)
         self.native_unit_of_measurement = UnitOfTemperature.CELSIUS
         self.device_class = SensorDeviceClass.TEMPERATURE
         self.state_class = SensorStateClass.MEASUREMENT
@@ -718,9 +831,9 @@ class TileFuelSupplySensor(TileSensor):
     _attr_device_class = SensorDeviceClass.BATTERY
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, controller_udid):
+    def __init__(self, device, coordinator, controller_udid):
         """Initialize the sensor."""
-        TileSensor.__init__(self, device, api, controller_udid)
+        TileSensor.__init__(self, device, coordinator, controller_udid)
 
     def get_state(self, device):
         """Get the state of the device."""
@@ -733,9 +846,9 @@ class TileFanSensor(TileSensor):
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, controller_udid):
+    def __init__(self, device, coordinator, controller_udid):
         """Initialize the sensor."""
-        TileSensor.__init__(self, device, api, controller_udid)
+        TileSensor.__init__(self, device, coordinator, controller_udid)
         self._attr_icon = assets.get_icon_by_type(device[CONF_TYPE])
 
     def get_state(self, device):
@@ -746,9 +859,9 @@ class TileFanSensor(TileSensor):
 class TileTextSensor(TileSensor):
     """Representation of a Tile Text Sensor."""
 
-    def __init__(self, device, api, controller_udid):
+    def __init__(self, device, coordinator, controller_udid):
         """Initialize the sensor."""
-        TileSensor.__init__(self, device, api, controller_udid)
+        TileSensor.__init__(self, device, coordinator, controller_udid)
         self._name = assets.get_text(device[CONF_PARAMS]["headerId"])
         self._attr_icon = assets.get_icon(device[CONF_PARAMS]["iconId"])
 
@@ -764,9 +877,9 @@ class TileWidgetSensor(TileSensor):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, controller_udid):
+    def __init__(self, device, coordinator, controller_udid):
         """Initialize the sensor."""
-        TileSensor.__init__(self, device, api, controller_udid)
+        TileSensor.__init__(self, device, coordinator, controller_udid)
         self._name = assets.get_text(device[CONF_PARAMS]["widget2"]["txtId"])
 
     def get_state(self, device):
@@ -777,9 +890,9 @@ class TileWidgetSensor(TileSensor):
 class TileValveSensor(TileSensor, SensorEntity):
     """Representation of a Tile Valve Sensor."""
 
-    def __init__(self, device, api, controller_udid):
+    def __init__(self, device, coordinator, controller_udid):
         """Initialize the sensor."""
-        TileSensor.__init__(self, device, api, controller_udid)
+        TileSensor.__init__(self, device, coordinator, controller_udid)
         self.native_unit_of_measurement = PERCENTAGE
         self.state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = assets.get_icon_by_type(device[CONF_TYPE])
@@ -830,9 +943,9 @@ class TileMixingValveSensor(TileSensor, SensorEntity):
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_state_class = SensorStateClass.MEASUREMENT
 
-    def __init__(self, device, api, controller_udid):
+    def __init__(self, device, coordinator, controller_udid):
         """Initialize the sensor."""
-        TileSensor.__init__(self, device, api, controller_udid)
+        TileSensor.__init__(self, device, coordinator, controller_udid)
         self.native_unit_of_measurement = PERCENTAGE
         self.state_class = SensorStateClass.MEASUREMENT
         self._attr_icon = assets.get_icon_by_type(device[CONF_TYPE])

@@ -1,6 +1,7 @@
 """TileEntity."""
 from abc import abstractmethod
 import logging
+from typing import Any
 
 from homeassistant.const import (
     ATTR_IDENTIFIERS,
@@ -12,21 +13,27 @@ from homeassistant.const import (
     CONF_PARAMS,
     CONF_TYPE,
 )
+from homeassistant.core import callback
 from homeassistant.helpers import entity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import assets
+from . import TechCoordinator, assets
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class TileEntity(entity.Entity):
+class TileEntity(
+    CoordinatorEntity,
+    entity.Entity,
+):
     """Representation of a TileEntity."""
 
-    def __init__(self, device, api, controller_uid):
+    def __init__(self, device, coordinator: TechCoordinator, controller_uid):
         """Initialize the tile entity."""
+        super().__init__(coordinator)
         self._controller_uid = controller_uid
-        self._api = api
+        self._coordinator = coordinator
         self._id = device[CONF_ID]
         self._unique_id = controller_uid + "_" + str(device[CONF_ID])
         self._model = device[CONF_PARAMS].get(CONF_DESCRIPTION)
@@ -83,8 +90,8 @@ class TileEntity(entity.Entity):
         # Update _state property
         self._state = self.get_state(device)
 
-    async def async_update(self):
-        """Update the state of the entity."""
-
-        device = await self._api.get_tile(self._controller_uid, self._id)
-        self.update_properties(device)
+    @callback
+    def _handle_coordinator_update(self, *args: Any) -> None:
+        """Handle updated data from the coordinator."""
+        self.update_properties(self._coordinator.data["tiles"][self._id])
+        self.async_write_ha_state()
