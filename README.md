@@ -27,6 +27,8 @@ The integration was developed and tested against eModul demo account (username: 
 Additionally, I own M-9r so that is also tested.
 Everything else might or might not work - needs community help, testing and reporting back what works.
 
+The integration is in no way supported or endorsed by TECH Sterowniki sp. z o.o.
+
 ## :sparkles: Features
 
 - Configuration through UI
@@ -46,6 +48,7 @@ Everything else might or might not work - needs community help, testing and repo
 - Support for window opening sensor
 - Support for cold tolerance setting
 - Support for zones schedules
+- Services for pumps, operating mode changes, etc
 
 ## 🏗 Installation
 
