@@ -60,3 +60,7 @@ rules:
     level: error
   truthy:
     level: error
+    allowed-values: ['true', 'false']
+    check-keys: true
+    ignore: |
+      .github/workflows
