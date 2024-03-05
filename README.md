@@ -46,6 +46,14 @@ and as a community we need make sure that this plugin keeps up to the changing w
 - Provides sensors for eModul 'tiles'
 - Automatic naming and translations of tiles from eModul API
 
+**This integration will set up the following platforms.**
+
+Platform | Description
+-- | --
+`binary_sensor` | Show info and status from Tech API.
+`sensor` | Show info and status from Tech API.
+`climate` | Thermostats.
+
 ![Tech Thermostat Cards](/custom_components/tech/images/ha-tech-1.png)
 
 ## ✏ Plans for development
@@ -56,14 +64,6 @@ and as a community we need make sure that this plugin keeps up to the changing w
 - Support for cold tolerance setting
 - Support for zones schedules
 - Services for pumps, operating mode changes, etc
-
-**This integration will set up the following platforms.**
-
-Platform | Description
--- | --
-`binary_sensor` | Show info and status from Tech API.
-`sensor` | Show info and status from Tech API.
-`climate` | Thermostats.
 
 ## 🏗 Installation
 
