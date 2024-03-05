@@ -2,6 +2,5 @@
     "name": "Tech Controllers",
     "country": "PL",
     "render_readme": true,
-    "iot_class": "Local Polling",
-    "domains": ["climate"]
-  }
+    "homeassistant": "2024.2.5"
+}
