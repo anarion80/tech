@@ -4,7 +4,7 @@
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE)
 
-![Project Maintenance][maintenance-shield]
+[![Project Maintenance][maintenance-shield]][maintainer]
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 
 This is an integration of heating controllers from Polish company TECH Sterowniki Sp. z o.o. It uses API to their web control application eModul.eu, therefore your controller needs to be accessible from the Internet and you need an account either on <https://emodul.eu> or <https://emodul.pl>.
@@ -114,5 +114,6 @@ Copyright (c) 2024 anarion80 - Released under the [MIT](LICENSE) license.
 [commits]: https://github.com/anarion80/tech/commits/main
 [license-shield]: https://img.shields.io/github/license/anarion80/tech?style=for-the-badge
 [maintenance-shield]: https://img.shields.io/badge/maintainer-anarion80-blue.svg?style=for-the-badge
+[maintainer]: https://github.com/anarion80
 [releases-shield]: https://img.shields.io/github/release/anarion80/tech.svg?style=for-the-badge
 [releases]: https://github.com/anarion80/tech/releases
