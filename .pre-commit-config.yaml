@@ -6,6 +6,7 @@ repos:
       # Run the linter.
       - id: ruff
         args: [--fix]
+        pass_filenames: false
       # Run the formatter.
       - id: ruff-format
   - repo: https://github.com/adrienverge/yamllint.git

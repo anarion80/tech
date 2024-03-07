@@ -17,6 +17,13 @@
                     "password": "Password",
                     "username": "Username"
                 }
+            },
+            "select_controllers": {
+                "title": "Controller selection",
+                "description": "Please select the controllers you want to integrate.",
+                "data": {
+                  "controllers": "Controllers to import"
+                }
             }
         }
     },
