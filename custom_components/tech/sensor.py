@@ -31,6 +31,7 @@ from . import TechCoordinator, assets
 from .const import (
     CONTROLLER,
     DOMAIN,
+    MANUFACTURER,
     TYPE_FAN,
     TYPE_FUEL_SUPPLY,
     TYPE_MIXING_VALVE,
@@ -282,7 +283,7 @@ class TechBatterySensor(CoordinatorEntity, SensorEntity):
             + ": "
             + config_entry.data[CONTROLLER][VER]
         )
-        self._manufacturer = "TechControllers"
+        self._manufacturer = MANUFACTURER
         self.update_properties(device)
 
     def update_properties(self, device):
@@ -358,7 +359,7 @@ class TechTemperatureSensor(CoordinatorEntity, SensorEntity):
             + ": "
             + config_entry.data[CONTROLLER][VER]
         )
-        self._manufacturer = "TechControllers"
+        self._manufacturer = MANUFACTURER
         self.update_properties(device)
 
     def update_properties(self, device):
@@ -437,7 +438,7 @@ class TechOutsideTempTile(CoordinatorEntity, SensorEntity):
             + ": "
             + config_entry.data[CONTROLLER][VER]
         )
-        self._manufacturer = "TechControllers"
+        self._manufacturer = MANUFACTURER
         self.update_properties(device)
         _LOGGER.debug(
             "Init TechOutsideTemperatureTile...: %s, udid: %s, id: %s",
@@ -523,7 +524,7 @@ class TechHumiditySensor(CoordinatorEntity, SensorEntity):
             + ": "
             + config_entry.data[CONTROLLER][VER]
         )
-        self._manufacturer = "TechControllers"
+        self._manufacturer = MANUFACTURER
         self.update_properties(device)
 
     def update_properties(self, device):
@@ -601,7 +602,7 @@ class ZoneSensor(CoordinatorEntity, SensorEntity):
             + ": "
             + config_entry.data[CONTROLLER][VER]
         )
-        self._manufacturer = "TechControllers"
+        self._manufacturer = MANUFACTURER
         self.update_properties(device)
 
     def update_properties(self, device):

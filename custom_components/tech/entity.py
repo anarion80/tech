@@ -18,7 +18,7 @@ from homeassistant.helpers import entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import TechCoordinator, assets
-from .const import DOMAIN
+from .const import DOMAIN, MANUFACTURER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class TileEntity(
         self._unique_id = controller_uid + "_" + str(device[CONF_ID])
         self._model = device[CONF_PARAMS].get(CONF_DESCRIPTION)
         self._state = self.get_state(device)
-        self.manufacturer = "TechControllers"
+        self.manufacturer = MANUFACTURER
         txt_id = device[CONF_PARAMS].get("txtId")
         if txt_id:
             self._name = assets.get_text(txt_id)

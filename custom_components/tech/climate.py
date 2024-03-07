@@ -25,7 +25,7 @@ from homeassistant.const import (
 from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONTROLLER, DOMAIN, UDID, VER
+from .const import CONTROLLER, DOMAIN, MANUFACTURER, UDID, VER
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class TechThermostat(ClimateEntity, CoordinatorEntity):
         self._id = device[CONF_ZONE][CONF_ID]
         self._unique_id = udid + "_" + str(device[CONF_ZONE][CONF_ID])
         self.device_name = device[CONF_DESCRIPTION][CONF_NAME]
-        self.manufacturer = "TechControllers"
+        self.manufacturer = MANUFACTURER
         self.model = model
         self._temperature = None
         self.update_properties(device)
