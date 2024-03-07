@@ -10,6 +10,9 @@ on:
 jobs:
   update_release_draft:
     name: Update release draft
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
