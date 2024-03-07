@@ -89,6 +89,10 @@ Platform | Description
 
 ![Tech Controllers Setup 4](/custom_components/tech/images/ha-tech-2.png)
 
+## ⬆ Migration to version 2
+
+Integration supports migration from version 1 (the original [mariusz-ostoja-swierczynski/tech-controllers](https://github.com/mariusz-ostoja-swierczynski/tech-controllers) version). Migration creates new devices, links appropriate entities to them, and removes entities that are no longer provided by the integration. :warning: This is tested only on one controller (M-9r) so please be aware there might be issues :warning:. In case of issues, delete the integration and its entities, restart Home Assistant and add/configure the integration again.
+
 ## 🚀 List of reported working TECH Controllers
 
 - L4-WiFi (v.1.0.24)
