@@ -14,6 +14,7 @@ USER_ID = "user_id"
 TILES = "tiles"
 VISIBILITY = "visibility"
 VALUE = "value"
+MANUFACTURER = "TechControllers"
 
 DEFAULT_ICON = "mdi:eye"
 
