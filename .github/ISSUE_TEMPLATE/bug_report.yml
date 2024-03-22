@@ -12,6 +12,8 @@ body:
 
         If you have a feature or enhancement request, please use the feature request issue type.
 
+        [feature request]: https://github.com/anarion80/tech/issues/new/choose
+
   - type: textarea
     validations:
       required: true

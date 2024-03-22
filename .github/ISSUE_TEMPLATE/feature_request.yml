@@ -1,7 +1,7 @@
 name: Request a feature from Tech Controllers integration
 description: Request a feature from Tech Controllers integration.
 title: "[Feat]: "
-labels: ["enhancement"]
+labels: ["feature", "triage"]
 assignees:
   - anarion80
 body:
@@ -10,8 +10,9 @@ body:
       value: |
         This issue form is for requesting new features only!
 
-        If you have a bug report, please use the other issue type.
+        If you have a bug report, please use the [bug report] issue type.
 
+        [bug report]: https://github.com/anarion80/tech/issues/new/choose
   - type: textarea
     validations:
       required: true
